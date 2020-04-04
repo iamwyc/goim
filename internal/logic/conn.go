@@ -26,9 +26,9 @@ func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) 
 		log.Errorf("json.Unmarshal(%s) error(%v)", token, err)
 		return
 	}
-	log.Infof("%s", params)
+	log.Infof("%v", params)
 	mid = params.Mid
-	roomID = params.RoomID
+	roomID = params.RoomID + "@test://123"
 	accepts = params.Accepts
 	hb = int64(l.c.Node.Heartbeat) * int64(l.c.Node.HeartbeatMax)
 	if key = params.Key; key == "" {

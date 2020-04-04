@@ -224,7 +224,6 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 	var (
 		err    error
 		finish bool
-		online int32
 		white  = whitelist.Contains(ch.Mid)
 	)
 	if conf.Conf.Debug {
@@ -261,10 +260,7 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 					whitelist.Printf("key: %s start write client proto%v\n", ch.Key, p)
 				}
 				if p.Op == grpc.OpHeartbeatReply {
-					if ch.Room != nil {
-						online = ch.Room.OnlineNum()
-					}
-					if err = p.WriteTCPHeart(wr, online); err != nil {
+					if err = p.WriteTCPHeart(wr, 1); err != nil {
 						goto failed
 					}
 				} else {

@@ -35,12 +35,13 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 }
 
 // BroadcastRoomMsg push a message to databus.
-func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []byte) (err error) {
+func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, seq int32, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_ROOM,
 		Operation: op,
 		Room:      room,
 		Msg:       msg,
+		Seq:       seq,
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {

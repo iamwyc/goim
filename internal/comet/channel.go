@@ -9,7 +9,7 @@ import (
 
 // Channel used by message pusher send msg to write goroutine.
 type Channel struct {
-	Room     *Room
+	Room     []*Room
 	CliProto Ring
 	signal   chan *grpc.Proto
 	Writer   bufio.Writer
@@ -40,6 +40,16 @@ func (c *Channel) Watch(accepts ...int32) {
 		c.watchOps[op] = struct{}{}
 	}
 	c.mutex.Unlock()
+}
+
+// Watch watch a operation.
+func (c *Channel) OnlineNum() (roomOnline map[string]int32) {
+	c.mutex.Lock()
+	for _, r := range c.Room {
+		roomOnline[r.ID] = r.OnlineNum()
+	}
+	c.mutex.Unlock()
+	return roomOnline
 }
 
 // UnWatch unwatch an operation

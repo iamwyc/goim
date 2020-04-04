@@ -1,11 +1,13 @@
 package comet
 
 import (
+	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
+	log "github.com/golang/glog"
 )
 
 // Bucket is a channel holder.
@@ -69,38 +71,42 @@ func (b *Bucket) ChangeRoom(nrid string, ch *Channel) (err error) {
 	var (
 		nroom *Room
 		ok    bool
-		oroom = ch.Room
+		rooms = ch.Room
+		exist = false
 	)
 	// change to no room
 	if nrid == "" {
-		if oroom != nil && oroom.Del(ch) {
-			b.DelRoom(oroom)
-		}
-		ch.Room = nil
 		return
 	}
 	b.cLock.Lock()
-	if nroom, ok = b.rooms[nrid]; !ok {
-		nroom = NewRoom(nrid)
-		b.rooms[nrid] = nroom
+	for _, r := range rooms {
+		if r.ID == nrid {
+			nroom = r
+			exist = true
+			break
+		}
+	}
+	if exist {
+		if nroom, ok = b.rooms[nrid]; !ok {
+			nroom = NewRoom(nrid)
+			b.rooms[nrid] = nroom
+		}
 	}
 	b.cLock.Unlock()
-	if oroom != nil && oroom.Del(ch) {
-		b.DelRoom(oroom)
+
+	if exist {
+		if err = nroom.Put(ch); err != nil {
+			return
+		}
 	}
-	
-	if err = nroom.Put(ch); err != nil {
-		return
-	}
-	ch.Room = nroom
 	return
 }
 
 // Put put a channel according with sub key.
-func (b *Bucket) Put(rid string, ch *Channel) (err error) {
+func (b *Bucket) Put(rids string, ch *Channel) (err error) {
 	var (
-		room *Room
-		ok   bool
+		rooms []*Room
+		ok    bool
 	)
 	b.cLock.Lock()
 	// close old channel
@@ -108,17 +114,25 @@ func (b *Bucket) Put(rid string, ch *Channel) (err error) {
 		dch.Close()
 	}
 	b.chs[ch.Key] = ch
-	if rid != "" {
-		if room, ok = b.rooms[rid]; !ok {
-			room = NewRoom(rid)
-			b.rooms[rid] = room
+	if rids != "" {
+		var room *Room
+		roomIds := strings.Split(rids, "@")
+		log.Infof("%v", roomIds)
+		for _, id := range roomIds {
+			if room, ok = b.rooms[id]; !ok {
+				room = NewRoom(id)
+				b.rooms[id] = room
+				rooms = append(rooms, room)
+			}
 		}
-		ch.Room = room
+		ch.Room = rooms
 	}
 	b.ipCnts[ch.IP]++
 	b.cLock.Unlock()
-	if room != nil {
-		err = room.Put(ch)
+	if rooms != nil {
+		for _, room := range rooms {
+			err = room.Put(ch)
+		}
 	}
 	return
 }
@@ -126,13 +140,13 @@ func (b *Bucket) Put(rid string, ch *Channel) (err error) {
 // Del delete the channel by sub key.
 func (b *Bucket) Del(dch *Channel) {
 	var (
-		ok   bool
-		ch   *Channel
-		room *Room
+		ok    bool
+		ch    *Channel
+		rooms []*Room
 	)
 	b.cLock.Lock()
 	if ch, ok = b.chs[dch.Key]; ok {
-		room = ch.Room
+		rooms = ch.Room
 		if ch == dch {
 			delete(b.chs, ch.Key)
 		}
@@ -144,9 +158,13 @@ func (b *Bucket) Del(dch *Channel) {
 		}
 	}
 	b.cLock.Unlock()
-	if room != nil && room.Del(ch) {
-		// if empty room, must delete from bucket
-		b.DelRoom(room)
+	if rooms != nil {
+		for _, room := range rooms {
+			if room.Del(ch) {
+				// if empty room, must delete from bucket
+				b.DelRoom(room)
+			}
+		}
 	}
 }
 

@@ -307,7 +307,6 @@ func (s *Server) dispatchWebsocket(ws *websocket.Conn, wp *bytes.Pool, wb *bytes
 	var (
 		err    error
 		finish bool
-		online int32
 		white  = whitelist.Contains(ch.Mid)
 	)
 	if conf.Conf.Debug {
@@ -344,10 +343,7 @@ func (s *Server) dispatchWebsocket(ws *websocket.Conn, wp *bytes.Pool, wb *bytes
 					whitelist.Printf("key: %s start write client proto%v\n", ch.Key, p)
 				}
 				if p.Op == grpc.OpHeartbeatReply {
-					if ch.Room != nil {
-						online = ch.Room.OnlineNum()
-					}
-					if err = p.WriteWebsocketHeart(ws, online); err != nil {
+					if err = p.WriteWebsocketHeart(ws, 1); err != nil {
 						goto failed
 					}
 				} else {

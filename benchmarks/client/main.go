@@ -171,6 +171,7 @@ func startClient(key int64, ip string) {
 				quit <- true
 				return
 			}
+			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
 		} else {
 			log.Infof("key:%d seq:%d op:%d msg: %s", key, proto.Seq, proto.Operation, string(proto.Body))
 			atomic.AddInt64(&countDown, 1)
