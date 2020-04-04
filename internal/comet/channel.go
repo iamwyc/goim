@@ -63,6 +63,9 @@ func (c *Channel) UnWatch(accepts ...int32) {
 
 // NeedPush verify if in watch.
 func (c *Channel) NeedPush(op int32) bool {
+	if op <= grpc.MinBusinessOp {
+		return true
+	}
 	c.mutex.RLock()
 	if _, ok := c.watchOps[op]; ok {
 		c.mutex.RUnlock()

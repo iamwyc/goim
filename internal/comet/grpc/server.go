@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	log "github.com/golang/glog"
 	"net"
 	"time"
 
@@ -19,9 +20,9 @@ func New(c *conf.RPCServer, s *comet.Server) *grpc.Server {
 	keepParams := grpc.KeepaliveParams(keepalive.ServerParameters{
 		MaxConnectionIdle:     time.Duration(c.IdleTimeout),
 		MaxConnectionAgeGrace: time.Duration(c.ForceCloseWait),
-		Time:             time.Duration(c.KeepAliveInterval),
-		Timeout:          time.Duration(c.KeepAliveTimeout),
-		MaxConnectionAge: time.Duration(c.MaxLifeTime),
+		Time:                  time.Duration(c.KeepAliveInterval),
+		Timeout:               time.Duration(c.KeepAliveTimeout),
+		MaxConnectionAge:      time.Duration(c.MaxLifeTime),
 	})
 	srv := grpc.NewServer(keepParams)
 	pb.RegisterCometServer(srv, &server{s})

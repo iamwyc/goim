@@ -21,9 +21,7 @@ func (l *Logic) PushKeys(c context.Context, arg *model.PushKeyMessage, msg []byt
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
-	log.Infof("%v", arg)
 	servers, err := l.dao.ServersByKeys(c, arg.Keys)
-	log.Infof("%v", servers)
 	if err != nil {
 		return
 	}
@@ -56,6 +54,9 @@ func (l *Logic) PushMids(c context.Context, arg *model.PushMidsMessage, msg []by
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
+	return l.DoPushMids(c, arg, msg)
+}
+func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
 	keyServers, _, err := l.dao.KeysByMids(c, arg.Mids)
 	if err != nil {
 		return

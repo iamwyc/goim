@@ -36,7 +36,7 @@ func main() {
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	log.Infof("conf:%v", conf.Conf)
+	log.Infof("conf:%v", conf.Conf.Env)
 	log.Infof("goim-comet [version: %s env: %+v] start", ver, conf.Conf.Env)
 	// register discovery
 	dis := naming.New(conf.Conf.Discovery)

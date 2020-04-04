@@ -3,6 +3,8 @@ package logic
 import (
 	"context"
 	"encoding/json"
+	"github.com/Terry-Mao/goim/internal/logic/dao"
+	"gopkg.in/mgo.v2/bson"
 	"time"
 
 	"github.com/Terry-Mao/goim/api/comet/grpc"
@@ -12,7 +14,7 @@ import (
 )
 
 type AuthToken struct {
-	Mid      int64   `json:"mid"`
+	Mid      int32   `json:"mid"`
 	Key      string  `json:"key"`
 	RoomID   string  `json:"room_id"`
 	Platform string  `json:"platform"`
@@ -26,8 +28,7 @@ func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) 
 		log.Errorf("json.Unmarshal(%s) error(%v)", token, err)
 		return
 	}
-	log.Infof("%v", params)
-	mid = params.Mid
+	mid = int64(params.Mid)
 	roomID = params.RoomID + "@test://123"
 	accepts = params.Accepts
 	hb = int64(l.c.Node.Heartbeat) * int64(l.c.Node.HeartbeatMax)
@@ -84,5 +85,41 @@ func (l *Logic) RenewOnline(c context.Context, server string, roomCount map[stri
 // Receive receive a message.
 func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err error) {
 	log.Infof("receive mid:%d message:%+v", mid, proto)
+	if proto.Op == grpc.OpGetOfflineMessage {
+		go l.GetUserOfflineMessage(mid)
+	} else if proto.Op > grpc.MinBusinessOp {
+		l.dao.MessageReceived(mid, proto.Seq)
+	}
 	return
+}
+
+func (l *Logic) GetUserOfflineMessage(mid int64) error {
+	var (
+		err  error
+		seqs []int32
+	)
+	ctx := context.TODO()
+	omCol := l.dao.GetCollection(dao.OfflineMessageCollection)
+	err = omCol.Find(bson.M{"deviceId": mid, "received": bson.M{"$eq": 0}}).Select(bson.M{"seq": 1}).Distinct("seq", &seqs)
+
+	if err == nil {
+		mids := []int64{mid}
+		for _, seq := range seqs {
+			var message model.Message
+			err := l.dao.GetCollection(dao.MessageCollection).Find(bson.M{"_id": seq}).One(&message)
+			if err == nil {
+				pm := model.PushMidsMessage{
+					Op:   message.Operation,
+					Seq:  message.Seq,
+					Mids: mids,
+				}
+				l.DoPushMids(ctx, &pm, message.Content)
+			} else {
+				log.Errorf("查询消息出错%v", err)
+			}
+		}
+	} else {
+		log.Errorf("查询消息出错%v", err)
+	}
+	return err
 }

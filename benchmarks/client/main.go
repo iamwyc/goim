@@ -22,15 +22,16 @@ import (
 )
 
 const (
-	opHeartbeat      = int32(2)
-	opHeartbeatReply = int32(3)
-	opAuth           = int32(7)
-	opAuthReply      = int32(8)
+	opHeartbeat         = int32(2)
+	opHeartbeatReply    = int32(3)
+	opAuth              = int32(7)
+	opAuthReply         = int32(8)
+	OpGetOfflineMessage = int32(18)
 )
 
 const (
 	rawHeaderLen = uint16(16)
-	heart        = 240 * time.Second
+	heart        = 10 * time.Second
 )
 
 const snPrefix = "00:11:22:33:44:"
@@ -141,6 +142,9 @@ func startClient(key int64, ip string) {
 		for {
 			// heartbeat
 			hbProto.Operation = opHeartbeat
+			if seq%2 == 0 {
+				hbProto.Operation = OpGetOfflineMessage
+			}
 			hbProto.Seq = seq
 			hbProto.Body = nil
 			if err = tcpWriteProto(wr, hbProto); err != nil {
@@ -164,7 +168,6 @@ func startClient(key int64, ip string) {
 			quit <- true
 			return
 		}
-		log.Infof("key:%d seq:%d op:%d msg: %s", key, proto.Seq, proto.Operation, string(proto.Body))
 		if proto.Operation == opAuthReply {
 			log.Infof("key:%d auth success", key)
 		} else if proto.Operation == opHeartbeatReply {
@@ -176,6 +179,7 @@ func startClient(key int64, ip string) {
 			}
 			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
 		} else {
+			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", proto.PackLen, key, proto.Seq, proto.Operation, len(proto.Body), string(proto.Body))
 			atomic.AddInt64(&countDown, 1)
 		}
 	}
