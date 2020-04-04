@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bilibili/discovery/naming"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
+	"github.com/bilibili/discovery/naming"
 
 	"github.com/BurntSushi/toml"
 )
@@ -81,6 +81,7 @@ type Config struct {
 	Redis      *Redis
 	Node       *Node
 	Backoff    *Backoff
+	Mongodb    *Mongodb
 	Regions    map[string][]string
 }
 
@@ -125,6 +126,12 @@ type Redis struct {
 	WriteTimeout xtime.Duration
 	IdleTimeout  xtime.Duration
 	Expire       xtime.Duration
+}
+
+// Mongodb .
+type Mongodb struct {
+	MongoUrl  string
+	PoolLimit int
 }
 
 // Kafka .

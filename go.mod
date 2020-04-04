@@ -31,6 +31,7 @@ require (
 	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
 	google.golang.org/grpc v1.16.0
 	gopkg.in/Shopify/sarama.v1 v1.19.0
+	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
 

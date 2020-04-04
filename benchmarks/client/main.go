@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -31,6 +32,8 @@ const (
 	rawHeaderLen = uint16(16)
 	heart        = 240 * time.Second
 )
+
+const snPrefix = "00:11:22:33:44:"
 
 // Proto proto.
 type Proto struct {
@@ -59,7 +62,7 @@ var (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
-	begin := 1
+	begin := 12
 	num := 1
 	ip := "127.0.0.1:3101"
 	go result()
@@ -112,7 +115,7 @@ func startClient(key int64, ip string) {
 	rd := bufio.NewReader(conn)
 	authToken := &AuthToken{
 		key,
-		"",
+		snPrefix + strconv.FormatInt(key, 10),
 		"test://1",
 		"ios",
 		[]int32{1000, 1001, 1002},
@@ -161,7 +164,7 @@ func startClient(key int64, ip string) {
 			quit <- true
 			return
 		}
-		log.Infof("receive %v", proto)
+		log.Infof("key:%d seq:%d op:%d msg: %s", key, proto.Seq, proto.Operation, string(proto.Body))
 		if proto.Operation == opAuthReply {
 			log.Infof("key:%d auth success", key)
 		} else if proto.Operation == opHeartbeatReply {
@@ -173,7 +176,6 @@ func startClient(key int64, ip string) {
 			}
 			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
 		} else {
-			log.Infof("key:%d seq:%d op:%d msg: %s", key, proto.Seq, proto.Operation, string(proto.Body))
 			atomic.AddInt64(&countDown, 1)
 		}
 	}

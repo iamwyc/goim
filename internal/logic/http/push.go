@@ -2,16 +2,14 @@ package http
 
 import (
 	"context"
+	"github.com/Terry-Mao/goim/internal/logic/model"
 	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (s *Server) pushKeys(c *gin.Context) {
-	var arg struct {
-		Op   int32    `form:"operation"`
-		Keys []string `form:"keys"`
-	}
+	var arg model.PushKeyMessage
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
@@ -22,7 +20,7 @@ func (s *Server) pushKeys(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushKeys(context.TODO(), arg.Op, arg.Keys, msg); err != nil {
+	if err = s.logic.PushKeys(context.TODO(), &arg, msg); err != nil {
 		result(c, nil, RequestErr)
 		return
 	}
@@ -30,10 +28,8 @@ func (s *Server) pushKeys(c *gin.Context) {
 }
 
 func (s *Server) pushMids(c *gin.Context) {
-	var arg struct {
-		Op   int32   `form:"operation"`
-		Mids []int64 `form:"mids"`
-	}
+
+	var arg model.PushMidsMessage
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
@@ -44,7 +40,7 @@ func (s *Server) pushMids(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushMids(context.TODO(), arg.Op, arg.Mids, msg); err != nil {
+	if err = s.logic.PushMids(context.TODO(), &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}
@@ -52,12 +48,7 @@ func (s *Server) pushMids(c *gin.Context) {
 }
 
 func (s *Server) pushRoom(c *gin.Context) {
-	var arg struct {
-		Op   int32  `form:"operation" binding:"required"`
-		Seq  int32  `form:"seq" binding:"required"`
-		Type string `form:"type" binding:"required"`
-		Room string `form:"room" binding:"required"`
-	}
+	var arg model.PushRoomMessage
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
@@ -68,7 +59,7 @@ func (s *Server) pushRoom(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushRoom(c, arg.Op, arg.Type, arg.Room, arg.Seq, msg); err != nil {
+	if err = s.logic.PushRoom(c, &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}
@@ -76,11 +67,7 @@ func (s *Server) pushRoom(c *gin.Context) {
 }
 
 func (s *Server) pushAll(c *gin.Context) {
-	var arg struct {
-		Op    int32 `form:"operation" binding:"required"`
-		Seq   int32 `form:"seq" binding:"required"`
-		Speed int32 `form:"speed"`
-	}
+	var arg model.PushAllMessage
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
@@ -90,7 +77,7 @@ func (s *Server) pushAll(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushAll(c, arg.Op, arg.Speed, arg.Seq, msg); err != nil {
+	if err = s.logic.PushAll(c, &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}

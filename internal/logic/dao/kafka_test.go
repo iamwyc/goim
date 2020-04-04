@@ -26,7 +26,7 @@ func TestDaoBroadcastRoomMsg(t *testing.T) {
 		room = "test://1"
 		msg  = []byte("msg")
 	)
-	err := d.BroadcastRoomMsg(c, op, room, msg)
+	err := d.BroadcastRoomMsg(c, op, room, 1, msg)
 	assert.Nil(t, err)
 }
 
@@ -37,6 +37,6 @@ func TestDaoBroadcastMsg(t *testing.T) {
 		speed = int32(0)
 		msg   = []byte("")
 	)
-	err := d.BroadcastMsg(c, op, speed, msg)
+	err := d.BroadcastMsg(c, op, speed, 1, msg)
 	assert.Nil(t, err)
 }

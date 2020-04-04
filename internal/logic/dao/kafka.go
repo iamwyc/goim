@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"github.com/Terry-Mao/goim/internal/logic/model"
 	"strconv"
 
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
@@ -11,8 +12,9 @@ import (
 )
 
 // PushMsg push a message to databus.
-func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, msg []byte) (err error) {
+func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, seq int32, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
+		Seq:       seq,
 		Type:      pb.PushMsg_PUSH,
 		Operation: op,
 		Server:    server,
@@ -35,20 +37,20 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 }
 
 // BroadcastRoomMsg push a message to databus.
-func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, seq int32, msg []byte) (err error) {
+func (d *Dao) BroadcastRoomMsg(c context.Context, arg *model.PushRoomMessage, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_ROOM,
-		Operation: op,
-		Room:      room,
+		Operation: arg.Op,
+		Room:      arg.Room,
 		Msg:       msg,
-		Seq:       seq,
+		Seq:       arg.Seq,
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {
 		return
 	}
 	m := &sarama.ProducerMessage{
-		Key:   sarama.StringEncoder(room),
+		Key:   sarama.StringEncoder(arg.Room),
 		Topic: d.c.Kafka.Topic,
 		Value: sarama.ByteEncoder(b),
 	}
@@ -59,20 +61,20 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, seq int
 }
 
 // BroadcastMsg push a message to databus.
-func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, seq int32, msg []byte) (err error) {
+func (d *Dao) BroadcastMsg(c context.Context, arg *model.PushAllMessage, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_BROADCAST,
-		Operation: op,
-		Speed:     speed,
+		Operation: arg.Op,
+		Speed:     arg.Speed,
 		Msg:       msg,
-		Seq:       seq,
+		Seq:       arg.Seq,
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {
 		return
 	}
 	m := &sarama.ProducerMessage{
-		Key:   sarama.StringEncoder(strconv.FormatInt(int64(op), 10)),
+		Key:   sarama.StringEncoder(strconv.FormatInt(int64(arg.Op), 10)),
 		Topic: d.c.Kafka.Topic,
 		Value: sarama.ByteEncoder(b),
 	}

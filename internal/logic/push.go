@@ -2,27 +2,40 @@ package logic
 
 import (
 	"context"
-
 	"github.com/Terry-Mao/goim/internal/logic/model"
 
 	log "github.com/golang/glog"
 )
 
 // PushKeys push a message by keys.
-func (l *Logic) PushKeys(c context.Context, op int32, keys []string, msg []byte) (err error) {
-	servers, err := l.dao.ServersByKeys(c, keys)
+func (l *Logic) PushKeys(c context.Context, arg *model.PushKeyMessage, msg []byte) (err error) {
+	err = l.dao.NewMessage(&model.Message{
+		Type:      0,
+		Online:    -1,
+		Operation: arg.Op,
+		Seq:       arg.Seq,
+		Content:   msg,
+		Sn:        arg.Keys,
+	})
+	if err != nil {
+		log.Errorf("插入数据库错误:%v", err)
+		return
+	}
+	log.Infof("%v", arg)
+	servers, err := l.dao.ServersByKeys(c, arg.Keys)
+	log.Infof("%v", servers)
 	if err != nil {
 		return
 	}
 	pushKeys := make(map[string][]string)
-	for i, key := range keys {
+	for i, key := range arg.Keys {
 		server := servers[i]
 		if server != "" && key != "" {
 			pushKeys[server] = append(pushKeys[server], key)
 		}
 	}
 	for server := range pushKeys {
-		if err = l.dao.PushMsg(c, op, server, pushKeys[server], msg); err != nil {
+		if err = l.dao.PushMsg(c, arg.Op, server, pushKeys[server], arg.Seq, msg); err != nil {
 			return
 		}
 	}
@@ -30,8 +43,20 @@ func (l *Logic) PushKeys(c context.Context, op int32, keys []string, msg []byte)
 }
 
 // PushMids push a message by mid.
-func (l *Logic) PushMids(c context.Context, op int32, mids []int64, msg []byte) (err error) {
-	keyServers, _, err := l.dao.KeysByMids(c, mids)
+func (l *Logic) PushMids(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
+	err = l.dao.NewMessage(&model.Message{
+		Type:      1,
+		Online:    -1,
+		Operation: arg.Op,
+		Seq:       arg.Seq,
+		Content:   msg,
+		Mids:      arg.Mids,
+	})
+	if err != nil {
+		log.Errorf("插入数据库错误:%v", err)
+		return
+	}
+	keyServers, _, err := l.dao.KeysByMids(c, arg.Mids)
 	if err != nil {
 		return
 	}
@@ -44,7 +69,7 @@ func (l *Logic) PushMids(c context.Context, op int32, mids []int64, msg []byte) 
 		keys[server] = append(keys[server], key)
 	}
 	for server, keys := range keys {
-		if err = l.dao.PushMsg(c, op, server, keys, msg); err != nil {
+		if err = l.dao.PushMsg(c, arg.Op, server, keys, arg.Seq, msg); err != nil {
 			return
 		}
 	}
@@ -52,11 +77,35 @@ func (l *Logic) PushMids(c context.Context, op int32, mids []int64, msg []byte) 
 }
 
 // PushRoom push a message by room.
-func (l *Logic) PushRoom(c context.Context, op int32, typ, room string, seq int32, msg []byte) (err error) {
-	return l.dao.BroadcastRoomMsg(c, op, model.EncodeRoomKey(typ, room), seq, msg)
+func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (err error) {
+	arg.Room = model.EncodeRoomKey(arg.Type, arg.Room)
+	err = l.dao.NewMessage(&model.Message{
+		Type:      2,
+		Online:    -1,
+		Operation: arg.Op,
+		Seq:       arg.Seq,
+		Content:   msg,
+		Room:      arg.Room,
+	})
+	if err != nil {
+		log.Errorf("插入数据库错误:%v", err)
+		return
+	}
+	return l.dao.BroadcastRoomMsg(c, arg, msg)
 }
 
 // PushAll push a message to all.
-func (l *Logic) PushAll(c context.Context, op, speed int32, seq int32, msg []byte) (err error) {
-	return l.dao.BroadcastMsg(c, op, speed, seq, msg)
+func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte) (err error) {
+	err = l.dao.NewMessage(&model.Message{
+		Type:      3,
+		Online:    -1,
+		Operation: arg.Op,
+		Seq:       arg.Seq,
+		Content:   msg,
+	})
+	if err != nil {
+		log.Errorf("插入数据库错误:%v", err)
+		return
+	}
+	return l.dao.BroadcastMsg(c, arg, msg)
 }
