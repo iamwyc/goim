@@ -7,7 +7,7 @@ import (
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/golang/glog"
-	sarama "gopkg.in/Shopify/sarama.v1"
+	"gopkg.in/Shopify/sarama.v1"
 )
 
 // PushMsg push a message to databus.
@@ -58,12 +58,13 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []b
 }
 
 // BroadcastMsg push a message to databus.
-func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, msg []byte) (err error) {
+func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, seq int32, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_BROADCAST,
 		Operation: op,
 		Speed:     speed,
 		Msg:       msg,
+		Seq:       seq,
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {

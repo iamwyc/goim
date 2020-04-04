@@ -20,6 +20,7 @@ message PushMsg {
     string room = 5;
     repeated string keys = 6;
     bytes msg = 7;
+    int32 seq = 8;
 }
 
 message CloseReply {

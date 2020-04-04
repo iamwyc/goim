@@ -13,11 +13,11 @@ import (
 func (j *Job) push(ctx context.Context, pushMsg *pb.PushMsg) (err error) {
 	switch pushMsg.Type {
 	case pb.PushMsg_PUSH:
-		err = j.pushKeys(pushMsg.Operation, pushMsg.Server, pushMsg.Keys, pushMsg.Msg)
+		err = j.pushKeys(pushMsg.Operation, pushMsg.Server, pushMsg.Keys, pushMsg.Msg, pushMsg.Seq)
 	case pb.PushMsg_ROOM:
-		err = j.getRoom(pushMsg.Room).Push(pushMsg.Operation, pushMsg.Msg)
+		err = j.getRoom(pushMsg.Room).Push(pushMsg.Operation, pushMsg.Msg, pushMsg.Seq)
 	case pb.PushMsg_BROADCAST:
-		err = j.broadcast(pushMsg.Operation, pushMsg.Msg, pushMsg.Speed)
+		err = j.broadcast(pushMsg.Operation, pushMsg.Msg, pushMsg.Speed, pushMsg.Seq)
 	default:
 		err = fmt.Errorf("no match push type: %s", pushMsg.Type)
 	}
@@ -25,12 +25,13 @@ func (j *Job) push(ctx context.Context, pushMsg *pb.PushMsg) (err error) {
 }
 
 // pushKeys push a message to a batch of subkeys.
-func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body []byte) (err error) {
+func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body []byte, seq int32) (err error) {
 	buf := bytes.NewWriterSize(len(body) + 64)
 	p := &comet.Proto{
 		Ver:  1,
 		Op:   operation,
 		Body: body,
+		Seq:  seq,
 	}
 	p.WriteTo(buf)
 	p.Body = buf.Buffer()
@@ -50,12 +51,13 @@ func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body 
 }
 
 // broadcast broadcast a message to all.
-func (j *Job) broadcast(operation int32, body []byte, speed int32) (err error) {
+func (j *Job) broadcast(operation int32, body []byte, speed int32, seq int32) (err error) {
 	buf := bytes.NewWriterSize(len(body) + 64)
 	p := &comet.Proto{
 		Ver:  1,
 		Op:   operation,
 		Body: body,
+		Seq:  seq,
 	}
 	p.WriteTo(buf)
 	p.Body = buf.Buffer()

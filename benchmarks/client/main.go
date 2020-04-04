@@ -13,9 +13,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"os"
 	"runtime"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -61,17 +59,12 @@ var (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
-	begin, err := strconv.Atoi(os.Args[1])
-	if err != nil {
-		panic(err)
-	}
-	num, err := strconv.Atoi(os.Args[2])
-	if err != nil {
-		panic(err)
-	}
+	begin := 1
+	num := 1
+	ip := "127.0.0.1:3101"
 	go result()
 	for i := begin; i < begin+num; i++ {
-		go client(int64(i))
+		go client(int64(i), ip)
 	}
 	// signal
 	var exit chan bool
@@ -93,14 +86,14 @@ func result() {
 	}
 }
 
-func client(mid int64) {
+func client(mid int64, ip string) {
 	for {
-		startClient(mid)
+		startClient(mid, ip)
 		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
 	}
 }
 
-func startClient(key int64) {
+func startClient(key int64, ip string) {
 	time.Sleep(time.Duration(rand.Intn(120)) * time.Second)
 	atomic.AddInt64(&aliveCount, 1)
 	quit := make(chan bool, 1)
@@ -109,9 +102,9 @@ func startClient(key int64) {
 		atomic.AddInt64(&aliveCount, -1)
 	}()
 	// connnect to server
-	conn, err := net.Dial("tcp", os.Args[3])
+	conn, err := net.Dial("tcp", ip)
 	if err != nil {
-		log.Errorf("net.Dial(%s) error(%v)", os.Args[3], err)
+		log.Errorf("net.Dial(%s) error(%v)", ip, err)
 		return
 	}
 	seq := int32(0)
@@ -168,6 +161,7 @@ func startClient(key int64) {
 			quit <- true
 			return
 		}
+		log.Infof("receive %v", proto)
 		if proto.Operation == opAuthReply {
 			log.Infof("key:%d auth success", key)
 		} else if proto.Operation == opHeartbeatReply {
@@ -178,7 +172,7 @@ func startClient(key int64) {
 				return
 			}
 		} else {
-			log.Infof("key:%d op:%d msg: %s", key, proto.Operation, string(proto.Body))
+			log.Infof("key:%d seq:%d op:%d msg: %s", key, proto.Seq, proto.Operation, string(proto.Body))
 			atomic.AddInt64(&countDown, 1)
 		}
 	}

@@ -77,6 +77,7 @@ func (s *Server) pushRoom(c *gin.Context) {
 func (s *Server) pushAll(c *gin.Context) {
 	var arg struct {
 		Op    int32 `form:"operation" binding:"required"`
+		Seq   int32 `form:"seq" binding:"required"`
 		Speed int32 `form:"speed"`
 	}
 	if err := c.BindQuery(&arg); err != nil {
@@ -88,7 +89,7 @@ func (s *Server) pushAll(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushAll(c, arg.Op, arg.Speed, msg); err != nil {
+	if err = s.logic.PushAll(c, arg.Op, arg.Speed, arg.Seq, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}

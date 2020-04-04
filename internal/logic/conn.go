@@ -11,19 +11,22 @@ import (
 	"github.com/google/uuid"
 )
 
+type AuthToken struct {
+	Mid      int64   `json:"mid"`
+	Key      string  `json:"key"`
+	RoomID   string  `json:"room_id"`
+	Platform string  `json:"platform"`
+	Accepts  []int32 `json:"accepts"`
+}
+
 // Connect connected a conn.
 func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) (mid int64, key, roomID string, accepts []int32, hb int64, err error) {
-	var params struct {
-		Mid      int64   `json:"mid"`
-		Key      string  `json:"key"`
-		RoomID   string  `json:"room_id"`
-		Platform string  `json:"platform"`
-		Accepts  []int32 `json:"accepts"`
-	}
+	var params AuthToken
 	if err = json.Unmarshal(token, &params); err != nil {
 		log.Errorf("json.Unmarshal(%s) error(%v)", token, err)
 		return
 	}
+	log.Infof("%s", params)
 	mid = params.Mid
 	roomID = params.RoomID
 	accepts = params.Accepts

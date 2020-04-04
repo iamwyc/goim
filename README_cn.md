@@ -135,5 +135,8 @@ router 属于有状态节点，logic可以使用一致性hash配置节点，增�
 
 job 根据kafka的partition来扩展多job工作方式，具体可以参考下kafka的partition负载
 
+### protoc
+> cd $GOPATH/src
+> protoc --proto_path=github.com/Terry-Mao/goim/api/logic/grpc/ -I=. --go_out=plugins=grpc:. github.com/Terry-Mao/goim/api/logic/grpc/api.proto
 ##更多
 TODO
