@@ -52,8 +52,15 @@ const (
 	// OpUnsubReply unsubscribe operation reply
 	OpGetOfflineMessageReply = int32(19)
 
+	// 业务消息推送
+	OpBusinessMessagePush = int32(900)
+
+	// 业务消息推送客户端响应
+	OpBusinessMessageAck = int32(901)
+
 	// MinBusinessOp min business operation
 	MinBusinessOp = int32(1000)
+
 	// MaxBusinessOp max business operation
 	MaxBusinessOp = int32(10000)
 )

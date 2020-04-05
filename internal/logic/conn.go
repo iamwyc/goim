@@ -87,7 +87,8 @@ func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err er
 	log.Infof("receive mid:%d message:%+v", mid, proto)
 	if proto.Op == grpc.OpGetOfflineMessage {
 		go l.GetUserOfflineMessage(mid)
-	} else if proto.Op > grpc.MinBusinessOp {
+		proto.Op = grpc.OpGetOfflineMessageReply
+	} else if proto.Op == grpc.OpBusinessMessageAck {
 		l.dao.MessageReceived(mid, proto.Seq)
 	}
 	return

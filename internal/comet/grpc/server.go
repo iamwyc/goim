@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	log "github.com/golang/glog"
 	"net"
 	"time"
 

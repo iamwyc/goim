@@ -2,7 +2,7 @@
 [env]
     host = "logic0"
 [discovery]
-    nodes = ["127.0.0.1:7171"]
+    nodes = ["127.0.0.1:7171","127.0.0.1:7170"]
     host = "logic0"
 
 [regions]

@@ -7,7 +7,6 @@ import (
 
 	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
-	log "github.com/golang/glog"
 )
 
 // Bucket is a channel holder.
@@ -117,7 +116,6 @@ func (b *Bucket) Put(rids string, ch *Channel) (err error) {
 	if rids != "" {
 		var room *Room
 		roomIds := strings.Split(rids, "@")
-		log.Infof("%v", roomIds)
 		for _, id := range roomIds {
 			if room, ok = b.rooms[id]; !ok {
 				room = NewRoom(id)

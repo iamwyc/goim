@@ -22,11 +22,13 @@ import (
 )
 
 const (
-	opHeartbeat         = int32(2)
-	opHeartbeatReply    = int32(3)
-	opAuth              = int32(7)
-	opAuthReply         = int32(8)
-	OpGetOfflineMessage = int32(18)
+	opHeartbeat           = int32(2)
+	opHeartbeatReply      = int32(3)
+	opAuth                = int32(7)
+	opAuthReply           = int32(8)
+	OpGetOfflineMessage   = int32(18)
+	OpBusinessMessagePush = int32(900)
+	OpBusinessMessageAck  = int32(901)
 )
 
 const (
@@ -178,6 +180,12 @@ func startClient(key int64, ip string) {
 				return
 			}
 			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
+		} else if proto.Operation == OpBusinessMessagePush {
+			proto.Body = nil
+			proto.Operation = OpBusinessMessageAck
+			tcpWriteProto(wr, proto)
+			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", proto.PackLen, key, proto.Seq, proto.Operation, len(proto.Body), string(proto.Body))
+
 		} else {
 			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", proto.PackLen, key, proto.Seq, proto.Operation, len(proto.Body), string(proto.Body))
 			atomic.AddInt64(&countDown, 1)
@@ -236,6 +244,8 @@ func tcpReadProto(rd *bufio.Reader, proto *Proto) (err error) {
 		n, t    int
 		bodyLen = int(packLen - int32(headerLen))
 	)
+	proto.PackLen = packLen
+	proto.HeaderLen = headerLen
 	if bodyLen > 0 {
 		proto.Body = make([]byte, bodyLen)
 		for {
