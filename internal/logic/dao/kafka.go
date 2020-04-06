@@ -2,8 +2,9 @@ package dao
 
 import (
 	"context"
-	"github.com/Terry-Mao/goim/internal/logic/model"
 	"strconv"
+
+	"github.com/Terry-Mao/goim/internal/logic/model"
 
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/gogo/protobuf/proto"
@@ -37,11 +38,11 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 }
 
 // BroadcastRoomMsg push a message to databus.
-func (d *Dao) BroadcastRoomMsg(c context.Context, arg *model.PushRoomMessage, msg []byte) (err error) {
+func (d *Dao) BroadcastRoomMsg(c context.Context, arg *model.PushRoomMessage, room string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_ROOM,
 		Operation: arg.Op,
-		Room:      arg.Room,
+		Room:      room,
 		Msg:       msg,
 		Seq:       arg.Seq,
 	}
@@ -50,7 +51,7 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, arg *model.PushRoomMessage, ms
 		return
 	}
 	m := &sarama.ProducerMessage{
-		Key:   sarama.StringEncoder(arg.Room),
+		Key:   sarama.StringEncoder(room),
 		Topic: d.c.Kafka.Topic,
 		Value: sarama.ByteEncoder(b),
 	}

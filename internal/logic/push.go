@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+
 	"github.com/Terry-Mao/goim/internal/logic/model"
 
 	log "github.com/golang/glog"
@@ -9,18 +10,19 @@ import (
 
 // PushKeys push a message by keys.
 func (l *Logic) PushKeys(c context.Context, arg *model.PushKeyMessage, msg []byte) (err error) {
-	err = l.dao.NewMessage(&model.Message{
+	message := model.Message{
 		Type:      0,
-		Online:    -1,
+		Online:    arg.Online,
 		Operation: arg.Op,
-		Seq:       arg.Seq,
 		Content:   msg,
 		Sn:        arg.Keys,
-	})
+	}
+	err = l.dao.NewMessage(&message)
 	if err != nil {
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
+	arg.Seq = message.Seq
 	servers, err := l.dao.ServersByKeys(c, arg.Keys)
 	if err != nil {
 		return
@@ -42,18 +44,19 @@ func (l *Logic) PushKeys(c context.Context, arg *model.PushKeyMessage, msg []byt
 
 //PushMids :push a message by mid.
 func (l *Logic) PushMids(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
-	err = l.dao.NewMessage(&model.Message{
+	message := model.Message{
 		Type:      1,
-		Online:    -1,
+		Online:    arg.Online,
 		Operation: arg.Op,
-		Seq:       arg.Seq,
 		Content:   msg,
 		Mids:      arg.Mids,
-	})
+	}
+	err = l.dao.NewMessage(&message)
 	if err != nil {
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
+	arg.Seq = message.Seq
 	return l.DoPushMids(c, arg, msg)
 }
 
@@ -81,34 +84,42 @@ func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []
 
 // PushRoom push a message by room.
 func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (err error) {
-	arg.Room = model.EncodeRoomKey(arg.Type, arg.Room)
-	err = l.dao.NewMessage(&model.Message{
+	room := model.EncodePlatformRoomKey(arg.Platform)
+	message := model.Message{
 		Type:      2,
-		Online:    -1,
+		Online:    arg.Online,
 		Operation: arg.Op,
 		Seq:       arg.Seq,
+		Platform:  arg.Platform,
+		Serias:    arg.Serias,
 		Content:   msg,
-		Room:      arg.Room,
-	})
+		Room:      room,
+	}
+
+	err = l.dao.NewMessage(&message)
 	if err != nil {
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
-	return l.dao.BroadcastRoomMsg(c, arg, msg)
+	arg.Seq = message.Seq
+	return l.dao.BroadcastRoomMsg(c, arg, room, msg)
 }
 
 // PushAll push a message to all.
 func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte) (err error) {
-	err = l.dao.NewMessage(&model.Message{
+	message := model.Message{
 		Type:      3,
-		Online:    -1,
+		Online:    arg.Online,
 		Operation: arg.Op,
 		Seq:       arg.Seq,
 		Content:   msg,
-	})
+	}
+
+	err = l.dao.NewMessage(&message)
 	if err != nil {
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
+	arg.Seq = message.Seq
 	return l.dao.BroadcastMsg(c, arg, msg)
 }

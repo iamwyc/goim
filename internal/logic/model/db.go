@@ -5,8 +5,9 @@ import (
 	"time"
 )
 
+//Device device model
 type Device struct {
-	Id         int32     `bson:"_id"`
+	ID         int32     `bson:"_id"`
 	Sn         string    `bson:"sn"`
 	Key        string    `bson:"key"`
 	Platform   int32     `bson:"platform"`
@@ -16,27 +17,26 @@ type Device struct {
 	CreateTime time.Time `bson:"create_time"`
 }
 
+//Dimension dimension model
 type Dimension struct {
 	Sn         []string
-	PlatformId int32
-	SeriasId   int32
+	PlatformID int32
+	SeriasID   int32
 	Online     int
 }
 
+//OfflineMessage offline message model
 type OfflineMessage struct {
-	Id       bson.ObjectId `bson:"_id"`
-	DeviceId int32         `bson:"deviceId"`
+	ID       bson.ObjectId `bson:"_id"`
+	DeviceID int32         `bson:"deviceId"`
 	Seq      int32         `bson:"seq"`
+	Online   int           `bson:"online"`
 	Received int32         `bson:"received"`
 }
 
-type OfflineMessageOutVO struct {
-	Seq     int32
-	Message string
-}
-
+//Message message model
 type Message struct {
-	Id        int32    `bson:"_id"`
+	ID        int32    `bson:"_id"`
 	Type      int      `bson:"type"`
 	Seq       int32    `bson:"seq"`
 	Operation int32    `bson:"opration"`
@@ -44,7 +44,8 @@ type Message struct {
 	Sn        []string `bson:"snList"`
 	Platform  int32    `bson:"platform"`
 	Serias    int32    `bson:"serias"`
-	Online    int      `bson:"online"`
-	Room      string   `bson:"room"`
-	Mids      []int64  `bson:"mids"`
+	//0:不限 1:在线消息
+	Online int     `bson:"online"`
+	Room   string  `bson:"room"`
+	Mids   []int64 `bson:"mids"`
 }

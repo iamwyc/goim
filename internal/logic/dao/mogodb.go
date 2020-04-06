@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
+	log "github.com/golang/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -12,17 +13,24 @@ const (
 	// OfflineMessageCollection offline_message collection name
 	OfflineMessageCollection = "offline_message"
 	// MessageCollection message collection name
-	MessageCollection        = "message"
-	dbname                   = "kkgoim"
-	deviceCollection         = "device"
-	sequenceCollection       = "sequence"
-	deviceIDKey              = "device_id"
-	messageIDKey             = "message_id"
+	MessageCollection  = "message"
+	dbname             = "kkgoim"
+	deviceCollection   = "device"
+	sequenceCollection = "sequence"
+	deviceIDKey        = "device_id"
+	messageIDKey       = "message_id"
 )
+//GetDevice get device by token
+func (d *Dao) GetDevice(token *model.AuthToken) (*model.Device, error) {
+	var device model.Device
+	err := d.GetCollection(deviceCollection).Find(bson.M{"key":token.Key}).One(&device)
+	return &device,err
+}
+
 // NewMessage insert a new messagepush
 func (d *Dao) NewMessage(message *model.Message) (err error) {
 	message.Seq, err = d.getNextSeq(messageIDKey)
-	message.Id = message.Seq
+	message.ID = message.Seq
 	if err != nil {
 		return err
 	}
@@ -33,9 +41,9 @@ func (d *Dao) NewMessage(message *model.Message) (err error) {
 	return d.batchInsertDimensionOfflineMessage(message)
 }
 
-// UserRegister device register
-func (d *Dao) UserRegister(device *model.Device) (err error) {
-	device.Id, err = d.getNextSeq(deviceIDKey)
+// DeviceRegister device register
+func (d *Dao) DeviceRegister(device *model.Device) (err error) {
+	device.ID, err = d.getNextSeq(deviceIDKey)
 	if err != nil {
 		return err
 	}
@@ -77,13 +85,15 @@ func (d *Dao) batchInsertDimensionOfflineMessage(m *model.Message) error {
 	var messages []interface{}
 	for _, r := range result {
 		messages = append(messages, model.OfflineMessage{
-			Id:       bson.NewObjectId(),
+			ID:       bson.NewObjectId(),
 			Seq:      m.Seq,
-			DeviceId: r.Id,
+			DeviceID: r.ID,
+			Online:   m.Online,
 			Received: 0,
 		})
 	}
 
+	log.Infof("%d %v", len(messages), messages)
 	return d.GetCollection(OfflineMessageCollection).Insert(messages...)
 }
 

@@ -25,14 +25,15 @@ func TestDaoBroadcastRoomMsg(t *testing.T) {
 		c   = context.Background()
 		msg = []byte("msg")
 		arg = model.PushRoomMessage{
-			Op:   int32(100),
-			Room: "123",
-			Seq:  1,
-			Type: "test",
+			Op:       int32(100),
+			Platform: 10,
+			Seq:      1,
+			Serias:   1,
 		}
+		room = model.EncodePlatformRoomKey(arg.Platform)
 	)
 
-	err := d.BroadcastRoomMsg(c, &arg, msg)
+	err := d.BroadcastRoomMsg(c, &arg, room, msg)
 	assert.Nil(t, err)
 }
 

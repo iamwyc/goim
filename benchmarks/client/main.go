@@ -13,7 +13,6 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -34,8 +33,6 @@ const (
 	rawHeaderLen = uint16(16)
 	heart        = 10 * time.Second
 )
-
-const snPrefix = "00:11:22:33:44:"
 
 // Proto proto.
 type Proto struct {
@@ -59,6 +56,7 @@ type AuthToken struct {
 var (
 	countDown  int64
 	aliveCount int64
+	errDown    int64
 )
 
 func main() {
@@ -84,9 +82,10 @@ func result() {
 	for {
 		nowCount := atomic.LoadInt64(&countDown)
 		nowAlive := atomic.LoadInt64(&aliveCount)
+		shutdown := atomic.LoadInt64(&errDown)
 		diff := nowCount - lastTimes
 		lastTimes = nowCount
-		log.Infof("%s alive:%d down:%d down/s:%d", time.Now().Format("2006-01-02 15:04:05"), nowAlive, nowCount, diff/interval)
+		log.Infof("%s alive:%d down:%d down/s:%d shutdown:%d", time.Now().Format("2006-01-02 15:04:05"), nowAlive, nowCount, diff/interval, shutdown)
 		time.Sleep(time.Second * time.Duration(interval))
 	}
 }
@@ -116,11 +115,7 @@ func startClient(key int64, ip string) {
 	wr := bufio.NewWriter(conn)
 	rd := bufio.NewReader(conn)
 	authToken := &AuthToken{
-		key,
-		snPrefix + strconv.FormatInt(key, 10),
-		"test://1",
-		"ios",
-		[]int32{1000, 1001, 1002},
+		Key: "29f1c30eb7714dd58781a4675342850f",
 	}
 	proto := new(Proto)
 	proto.Ver = 1
@@ -157,6 +152,7 @@ func startClient(key int64, ip string) {
 			seq++
 			select {
 			case <-quit:
+				atomic.AddInt64(&errDown, 1)
 				return
 			default:
 			}

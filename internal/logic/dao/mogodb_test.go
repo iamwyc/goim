@@ -27,7 +27,7 @@ func TestUserRegister(t *testing.T) {
 					CreateTime: time.Now(),
 					UpdateTime: time.Now(),
 				}
-				err := d.UserRegister(de)
+				err := d.DeviceRegister(de)
 				if err != nil {
 					panic(err)
 				}

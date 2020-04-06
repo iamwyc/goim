@@ -41,10 +41,10 @@ func TestPushRoom(t *testing.T) {
 		c   = context.TODO()
 		msg = []byte("hello")
 		arg = model.PushRoomMessage{
-			Op:   int32(900),
-			Room: "123",
-			Type: "test",
-			Seq:  900,
+			Op:       int32(900),
+			Platform: 10,
+			Serias:   0,
+			Seq:      900,
 		}
 	)
 	err := lg.PushRoom(c, &arg, msg)
