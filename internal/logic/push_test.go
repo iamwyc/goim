@@ -4,17 +4,21 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Terry-Mao/goim/internal/logic/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPushKeys(t *testing.T) {
 	var (
-		c    = context.TODO()
-		op   = int32(100)
-		keys = []string{"test_key"}
-		msg  = []byte("hello")
+		c   = context.TODO()
+		msg = []byte("hello")
+		arg = model.PushKeyMessage{
+			Op:   int32(900),
+			Keys: []string{"test_key"},
+			Seq:  900,
+		}
 	)
-	err := lg.PushKeys(c, op, keys, msg)
+	err := lg.PushKeys(c, &arg, msg)
 	assert.Nil(t, err)
 }
 

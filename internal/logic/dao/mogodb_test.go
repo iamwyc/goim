@@ -57,9 +57,3 @@ func TestNewMessage(t *testing.T) {
 func TestMessageReceived(t *testing.T) {
 	d.MessageReceived(1, 19)
 }
-
-func TestGetUserOfflineMessage(t *testing.T) {
-	err, ms := d.GetUserOfflineMessage(1)
-	assert.Nil(t, err)
-	fmt.Printf("%v", ms)
-}

@@ -3,9 +3,10 @@ package logic
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/Terry-Mao/goim/internal/logic/dao"
 	"gopkg.in/mgo.v2/bson"
-	"time"
 
 	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/logic/model"
@@ -94,6 +95,7 @@ func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err er
 	return
 }
 
+// GetUserOfflineMessage get user offline message Operate
 func (l *Logic) GetUserOfflineMessage(mid int64) error {
 	var (
 		err  error

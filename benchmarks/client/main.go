@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"math/rand"
 	"net"
 	"runtime"
@@ -26,9 +25,9 @@ const (
 	opHeartbeatReply      = int32(3)
 	opAuth                = int32(7)
 	opAuthReply           = int32(8)
-	OpGetOfflineMessage   = int32(18)
-	OpBusinessMessagePush = int32(900)
-	OpBusinessMessageAck  = int32(901)
+	opGetOfflineMessage   = int32(18)
+	opBusinessMessagePush = int32(900)
+	opBusinessMessageAck  = int32(901)
 )
 
 const (
@@ -87,7 +86,7 @@ func result() {
 		nowAlive := atomic.LoadInt64(&aliveCount)
 		diff := nowCount - lastTimes
 		lastTimes = nowCount
-		fmt.Println(fmt.Sprintf("%s alive:%d down:%d down/s:%d", time.Now().Format("2006-01-02 15:04:05"), nowAlive, nowCount, diff/interval))
+		log.Infof("%s alive:%d down:%d down/s:%d", time.Now().Format("2006-01-02 15:04:05"), nowAlive, nowCount, diff/interval)
 		time.Sleep(time.Second * time.Duration(interval))
 	}
 }
@@ -145,7 +144,7 @@ func startClient(key int64, ip string) {
 			// heartbeat
 			hbProto.Operation = opHeartbeat
 			if seq%2 == 0 {
-				hbProto.Operation = OpGetOfflineMessage
+				hbProto.Operation = opGetOfflineMessage
 			}
 			hbProto.Seq = seq
 			hbProto.Body = nil
@@ -180,12 +179,11 @@ func startClient(key int64, ip string) {
 				return
 			}
 			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
-		} else if proto.Operation == OpBusinessMessagePush {
-			proto.Body = nil
-			proto.Operation = OpBusinessMessageAck
-			tcpWriteProto(wr, proto)
+		} else if proto.Operation == opBusinessMessagePush {
 			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", proto.PackLen, key, proto.Seq, proto.Operation, len(proto.Body), string(proto.Body))
-
+			proto.Body = nil
+			proto.Operation = opBusinessMessageAck
+			tcpWriteProto(wr, proto)
 		} else {
 			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", proto.PackLen, key, proto.Seq, proto.Operation, len(proto.Body), string(proto.Body))
 			atomic.AddInt64(&countDown, 1)

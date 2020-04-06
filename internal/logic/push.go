@@ -40,7 +40,7 @@ func (l *Logic) PushKeys(c context.Context, arg *model.PushKeyMessage, msg []byt
 	return
 }
 
-// PushMids push a message by mid.
+//PushMids :push a message by mid.
 func (l *Logic) PushMids(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
 	err = l.dao.NewMessage(&model.Message{
 		Type:      1,
@@ -56,6 +56,8 @@ func (l *Logic) PushMids(c context.Context, arg *model.PushMidsMessage, msg []by
 	}
 	return l.DoPushMids(c, arg, msg)
 }
+
+//DoPushMids :do push a message by mid.
 func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
 	keyServers, _, err := l.dao.KeysByMids(c, arg.Mids)
 	if err != nil {
