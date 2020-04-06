@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//AuthToken auth token struct
 type AuthToken struct {
 	Mid      int32   `json:"mid"`
 	Key      string  `json:"key"`

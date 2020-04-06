@@ -24,34 +24,43 @@ func TestPushKeys(t *testing.T) {
 
 func TestPushMids(t *testing.T) {
 	var (
-		c    = context.TODO()
-		op   = int32(100)
-		mids = []int64{1, 2, 3}
-		msg  = []byte("hello")
+		c   = context.TODO()
+		msg = []byte("hello")
+		arg = model.PushMidsMessage{
+			Op:   int32(900),
+			Mids: []int64{12, 13},
+			Seq:  900,
+		}
 	)
-	err := lg.PushMids(c, op, mids, msg)
+	err := lg.PushMids(c, &arg, msg)
 	assert.Nil(t, err)
 }
 
 func TestPushRoom(t *testing.T) {
 	var (
-		c    = context.TODO()
-		op   = int32(100)
-		typ  = "test"
-		room = "test_room"
-		msg  = []byte("hello")
+		c   = context.TODO()
+		msg = []byte("hello")
+		arg = model.PushRoomMessage{
+			Op:   int32(900),
+			Room: "123",
+			Type: "test",
+			Seq:  900,
+		}
 	)
-	err := lg.PushRoom(c, op, typ, room, msg)
+	err := lg.PushRoom(c, &arg, msg)
 	assert.Nil(t, err)
 }
 
 func TestPushAll(t *testing.T) {
 	var (
-		c     = context.TODO()
-		op    = int32(100)
-		speed = int32(100)
-		msg   = []byte("hello")
+		c   = context.TODO()
+		msg = []byte("hello")
+		arg = model.PushAllMessage{
+			Op:    int32(900),
+			Seq:   900,
+			Speed: 5,
+		}
 	)
-	err := lg.PushAll(c, op, speed, msg)
+	err := lg.PushAll(c, &arg, msg)
 	assert.Nil(t, err)
 }
