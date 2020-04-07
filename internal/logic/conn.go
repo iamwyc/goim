@@ -11,11 +11,10 @@ import (
 	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 	log "github.com/golang/glog"
-	"github.com/google/uuid"
 )
 
 // Connect connected a conn.
-func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) (mid int64, key, roomID string, accepts []int32, hb int64, err error) {
+func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) (mid int64, sn, roomID string, accepts []int32, hb int64, err error) {
 	var params model.AuthToken
 	if err = json.Unmarshal(token, &params); err != nil {
 		log.Errorf("json.Unmarshal(%s) error(%v)", token, err)
@@ -28,15 +27,13 @@ func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) 
 		return
 	}
 	mid = int64(device.ID)
-	roomID=model.EncodePlatformAndSeriasRoomKey(device.Platform,device.Serias)
+	roomID = model.EncodePlatformAndSeriasRoomKey(device.Platform, device.Serias)
 	hb = int64(l.c.Node.Heartbeat) * int64(l.c.Node.HeartbeatMax)
-	if key = params.Key; key == "" {
-		key = uuid.New().String()
+	sn = device.Sn
+	if err = l.dao.AddMapping(c, mid, sn, server); err != nil {
+		log.Errorf("l.dao.AddMapping(%d,%s,%s) error(%v)", mid, sn, server, err)
 	}
-	if err = l.dao.AddMapping(c, mid, key, server); err != nil {
-		log.Errorf("l.dao.AddMapping(%d,%s,%s) error(%v)", mid, key, server, err)
-	}
-	log.Infof("conn connected key:%s server:%s mid:%d token:%s roomID:%s", key, server, mid, token, roomID)
+	log.Infof("conn connected sn:%s server:%s mid:%d token:%s roomID:%s", sn, server, mid, token, roomID)
 	return
 }
 
@@ -51,19 +48,19 @@ func (l *Logic) Disconnect(c context.Context, mid int64, key, server string) (ha
 }
 
 // Heartbeat heartbeat a conn.
-func (l *Logic) Heartbeat(c context.Context, mid int64, key, server string) (err error) {
-	has, err := l.dao.ExpireMapping(c, mid, key)
+func (l *Logic) Heartbeat(c context.Context, mid int64, sn, server string) (err error) {
+	has, err := l.dao.ExpireMapping(c, mid, sn)
 	if err != nil {
-		log.Errorf("l.dao.ExpireMapping(%d,%s,%s) error(%v)", mid, key, server, err)
+		log.Errorf("l.dao.ExpireMapping(%d,%s,%s) error(%v)", mid, sn, server, err)
 		return
 	}
 	if !has {
-		if err = l.dao.AddMapping(c, mid, key, server); err != nil {
-			log.Errorf("l.dao.AddMapping(%d,%s,%s) error(%v)", mid, key, server, err)
+		if err = l.dao.AddMapping(c, mid, sn, server); err != nil {
+			log.Errorf("l.dao.AddMapping(%d,%s,%s) error(%v)", mid, sn, server, err)
 			return
 		}
 	}
-	log.Infof("conn heartbeat key:%s server:%s mid:%d", key, server, mid)
+	log.Infof("conn heartbeat key:%s server:%s mid:%d", sn, server, mid)
 	return
 }
 
@@ -111,7 +108,7 @@ func (l *Logic) GetUserOfflineMessage(mid int64) error {
 				pm := model.PushMidsMessage{
 					Op:   message.Operation,
 					Seq:  message.Seq,
-					Mids: mids,
+					MidList: mids,
 				}
 				l.DoPushMids(ctx, &pm, message.Content)
 			} else {

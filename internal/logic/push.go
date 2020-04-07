@@ -8,14 +8,14 @@ import (
 	log "github.com/golang/glog"
 )
 
-// PushKeys push a message by keys.
-func (l *Logic) PushKeys(c context.Context, arg *model.PushKeyMessage, msg []byte) (err error) {
+// PushSnList push a message by keys.
+func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []byte) (err error) {
 	message := model.Message{
 		Type:      0,
 		Online:    arg.Online,
 		Operation: arg.Op,
 		Content:   msg,
-		Sn:        arg.Keys,
+		Sn:        arg.SnList,
 	}
 	err = l.dao.NewMessage(&message)
 	if err != nil {
@@ -23,33 +23,33 @@ func (l *Logic) PushKeys(c context.Context, arg *model.PushKeyMessage, msg []byt
 		return
 	}
 	arg.Seq = message.Seq
-	servers, err := l.dao.ServersByKeys(c, arg.Keys)
+	servers, err := l.dao.ServersByKeys(c, arg.SnList)
 	if err != nil {
 		return
 	}
-	pushKeys := make(map[string][]string)
-	for i, key := range arg.Keys {
+	pushSnList := make(map[string][]string)
+	for i, key := range arg.SnList {
 		server := servers[i]
 		if server != "" && key != "" {
-			pushKeys[server] = append(pushKeys[server], key)
+			pushSnList[server] = append(pushSnList[server], key)
 		}
 	}
-	for server := range pushKeys {
-		if err = l.dao.PushMsg(c, arg.Op, server, pushKeys[server], arg.Seq, msg); err != nil {
+	for server := range pushSnList {
+		if err = l.dao.PushMsg(c, arg.Op, server, pushSnList[server], arg.Seq, msg); err != nil {
 			return
 		}
 	}
 	return
 }
 
-//PushMids :push a message by mid.
-func (l *Logic) PushMids(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
+//PushMidList :push a message by mid.
+func (l *Logic) PushMidList(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
 	message := model.Message{
 		Type:      1,
 		Online:    arg.Online,
 		Operation: arg.Op,
 		Content:   msg,
-		Mids:      arg.Mids,
+		Mids:      arg.MidList,
 	}
 	err = l.dao.NewMessage(&message)
 	if err != nil {
@@ -62,7 +62,7 @@ func (l *Logic) PushMids(c context.Context, arg *model.PushMidsMessage, msg []by
 
 //DoPushMids :do push a message by mid.
 func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
-	keyServers, _, err := l.dao.KeysByMids(c, arg.Mids)
+	keyServers, _, err := l.dao.KeysByMids(c, arg.MidList)
 	if err != nil {
 		return
 	}

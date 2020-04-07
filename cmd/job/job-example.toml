@@ -3,7 +3,7 @@
     host = "job0"
 
 [discovery]
-    nodes = ["127.0.0.1:7171","127.0.0.1:7170"]
+    nodes = ["127.0.0.1:7171"]
     host = "job0"
 
 [kafka]

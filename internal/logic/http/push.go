@@ -8,26 +8,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (s *Server) pushKeys(c *gin.Context) {
+func (s *Server) pushSnList(c *gin.Context) {
 	var arg model.PushKeyMessage
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
 	}
 	// read message
+	arg.Op = model.DefaultOperation
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushKeys(context.TODO(), &arg, msg); err != nil {
+	if err = s.logic.PushSnList(context.TODO(), &arg, msg); err != nil {
 		result(c, nil, RequestErr)
 		return
 	}
 	result(c, nil, OK)
 }
 
-func (s *Server) pushMids(c *gin.Context) {
+func (s *Server) pushMidList(c *gin.Context) {
 
 	var arg model.PushMidsMessage
 	if err := c.BindQuery(&arg); err != nil {
@@ -35,12 +36,13 @@ func (s *Server) pushMids(c *gin.Context) {
 		return
 	}
 	// read message
+	arg.Op = model.DefaultOperation
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushMids(context.TODO(), &arg, msg); err != nil {
+	if err = s.logic.PushMidList(context.TODO(), &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}
@@ -54,6 +56,7 @@ func (s *Server) pushRoom(c *gin.Context) {
 		return
 	}
 	// read message
+	arg.Op = model.DefaultOperation
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errors(c, RequestErr, err.Error())
@@ -72,6 +75,7 @@ func (s *Server) pushAll(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
+	arg.Op = model.DefaultOperation
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errors(c, RequestErr, err.Error())

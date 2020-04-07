@@ -3,7 +3,6 @@ package dao
 import (
 	"fmt"
 	"github.com/Terry-Mao/goim/internal/logic/model"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestUserRegister(t *testing.T) {
-	snPrefix := "00:11:22:33:%d:%d"
+	snPrefix := "KKSNAABBCCDDEE%2d%2d"
 	var s sync.WaitGroup
 	for j := int32(10); j < 100; j++ {
 		s.Add(1)
@@ -20,7 +19,6 @@ func TestUserRegister(t *testing.T) {
 				sn := fmt.Sprintf(snPrefix, p, i)
 				de := &model.Device{
 					Sn:         sn,
-					Key:        uuid.New().String(),
 					Online:     false,
 					Platform:   i % 10,
 					Serias:     i % 4,
