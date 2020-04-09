@@ -32,6 +32,7 @@ func New(c *conf.HTTPServer, l *logic.Logic) *Server {
 
 func (s *Server) initRouter() {
 	group := s.engine.Group("/goim")
+	group.POST("/device/register", s.deviceRegister)
 	group.POST("/push/sns", s.pushSnList)
 	group.POST("/push/mids", s.pushMidList)
 	group.POST("/push/room", s.pushRoom)

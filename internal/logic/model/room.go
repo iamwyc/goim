@@ -12,7 +12,17 @@ const(
 func EncodeRoomKey(typ string, room string) string {
 	return fmt.Sprintf("%s://%s", typ, room)
 }
-
+// DecodePlatformAndSeriasRoomKey encode a room key.
+func DecodePlatformAndSeriasRoomKey(platform int32, serias int32) []string {
+	var room []string
+	if platform > 0 {
+		room = append(room,EncodePlatformRoomKey(platform))
+	}
+	if serias > 0 {
+		room = append(room,EncodeSeriasRoomKey(serias))
+	}
+	return room
+}
 // EncodePlatformAndSeriasRoomKey encode a room key.
 func EncodePlatformAndSeriasRoomKey(platform int32, serias int32) string {
 	room := ""

@@ -3,19 +3,17 @@ package http
 import (
 	"context"
 
+	"github.com/Terry-Mao/goim/internal/logic/model"
 	"github.com/gin-gonic/gin"
 )
 
 func (s *Server) onlineTop(c *gin.Context) {
-	var arg struct {
-		Type  string `form:"type" binding:"required"`
-		Limit int    `form:"limit" binding:"required"`
-	}
+	var arg model.TopIn
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	res, err := s.logic.OnlineTop(c, arg.Type, arg.Limit)
+	res, err := s.logic.OnlineTop(c, &arg, arg.Limit)
 	if err != nil {
 		result(c, nil, RequestErr)
 		return
@@ -24,15 +22,12 @@ func (s *Server) onlineTop(c *gin.Context) {
 }
 
 func (s *Server) onlineRoom(c *gin.Context) {
-	var arg struct {
-		Type  string   `form:"type" binding:"required"`
-		Rooms []string `form:"rooms" binding:"required"`
-	}
+	var arg model.OnlineRoom
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	res, err := s.logic.OnlineRoom(c, arg.Type, arg.Rooms)
+	res, err := s.logic.OnlineRoom(c, &arg)
 	if err != nil {
 		result(c, nil, RequestErr)
 		return
@@ -41,10 +36,11 @@ func (s *Server) onlineRoom(c *gin.Context) {
 }
 
 func (s *Server) onlineTotal(c *gin.Context) {
-	ipCount, connCount := s.logic.OnlineTotal(context.TODO())
+	ipCount, connCount, rc := s.logic.OnlineTotal(context.TODO())
 	res := map[string]interface{}{
-		"ip_count":   ipCount,
-		"conn_count": connCount,
+		"ip_count":       ipCount,
+		"conn_count":     connCount,
+		"register_count": rc,
 	}
 	result(c, res, OK)
 }

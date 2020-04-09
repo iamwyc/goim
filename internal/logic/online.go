@@ -13,15 +13,22 @@ var (
 )
 
 // OnlineTop get the top online.
-func (l *Logic) OnlineTop(c context.Context, typ string, n int) (tops []*model.Top, err error) {
+func (l *Logic) OnlineTop(c context.Context, arg *model.TopIn, n int) (tops []*model.Top, err error) {
+	rooms := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
+	size := len(rooms)
+	if size == 0 {
+		return
+	}
 	for key, cnt := range l.roomCount {
-		if strings.HasPrefix(key, typ) {
-			_, roomID, err := model.DecodeRoomKey(key)
-			if err != nil {
-				continue
-			}
+		var roomKey string
+		if arg.Platform > 0 && strings.HasPrefix(key, "p") {
+			roomKey = model.EncodePlatformRoomKey(arg.Platform)
+		} else if arg.Serias > 0 && strings.HasPrefix(key, "s") {
+			roomKey = model.EncodeSeriasRoomKey(arg.Serias)
+		}
+		if roomKey != "" {
 			top := &model.Top{
-				RoomID: roomID,
+				RoomID: roomKey,
 				Count:  cnt,
 			}
 			tops = append(tops, top)
@@ -40,15 +47,18 @@ func (l *Logic) OnlineTop(c context.Context, typ string, n int) (tops []*model.T
 }
 
 // OnlineRoom get rooms online.
-func (l *Logic) OnlineRoom(c context.Context, typ string, rooms []string) (res map[string]int32, err error) {
-	res = make(map[string]int32, len(rooms))
-	for _, room := range rooms {
-		res[room] = l.roomCount[model.EncodeRoomKey(typ, room)]
+func (l *Logic) OnlineRoom(c context.Context, arg *model.OnlineRoom) (res model.OnlineRoomOutVO, err error) {
+	if arg.Platform > 0 {
+		res.Platform = l.roomCount[model.EncodePlatformRoomKey(arg.Platform)]
+	}
+	if arg.Serias > 0 {
+		res.Serias = l.roomCount[model.EncodePlatformRoomKey(arg.Serias)]
 	}
 	return
 }
 
 // OnlineTotal get all online.
-func (l *Logic) OnlineTotal(c context.Context) (int64, int64) {
-	return l.totalIPs, l.totalConns
+func (l *Logic) OnlineTotal(c context.Context) (int64, int64, int) {
+	registerCount, _ := l.DeviceCount(c)
+	return l.totalIPs, l.totalConns, registerCount
 }

@@ -84,25 +84,28 @@ func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []
 
 // PushRoom push a message by room.
 func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (err error) {
-	room := model.EncodePlatformRoomKey(arg.Platform)
-	message := model.Message{
-		Type:      2,
-		Online:    arg.Online,
-		Operation: arg.Op,
-		Seq:       arg.Seq,
-		Platform:  arg.Platform,
-		Serias:    arg.Serias,
-		Content:   msg,
-		Room:      room,
-	}
+	rooms := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
+	for _, room := range rooms {
+		message := model.Message{
+			Type:      2,
+			Online:    arg.Online,
+			Operation: arg.Op,
+			Seq:       arg.Seq,
+			Platform:  arg.Platform,
+			Serias:    arg.Serias,
+			Content:   msg,
+			Room:      room,
+		}
 
-	err = l.dao.NewMessage(&message)
-	if err != nil {
-		log.Errorf("插入数据库错误:%v", err)
-		return
+		err = l.dao.NewMessage(&message)
+		if err != nil {
+			log.Errorf("插入数据库错误:%v", err)
+			continue
+		}
+		arg.Seq = message.Seq
+		l.dao.BroadcastRoomMsg(c, arg, room, msg)
 	}
-	arg.Seq = message.Seq
-	return l.dao.BroadcastRoomMsg(c, arg, room, msg)
+	return
 }
 
 // PushAll push a message to all.

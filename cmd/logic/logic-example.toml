@@ -1,9 +1,16 @@
 # This is a TOML document. Boom
 [env]
     host = "logic0"
+    region = "gz001" 
+    zone = "gz"
+    deployEnv = "dev"
+    
 [discovery]
     nodes = ["127.0.0.1:7171"]
     host = "logic0"
+    zone = "gz"
+    region = "gz0001"
+    env = "dev"
 
 [regions]
     "bj" = ["北京","天津","河北","山东","山西","内蒙古","辽宁","吉林","黑龙江","甘肃","宁夏","新疆"]

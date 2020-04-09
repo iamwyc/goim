@@ -97,22 +97,24 @@ func (l *Logic) GetUserOfflineMessage(mid int64) error {
 	)
 	ctx := context.TODO()
 	omCol := l.dao.GetCollection(dao.OfflineMessageCollection)
-	err = omCol.Find(bson.M{"deviceId": mid, "received": bson.M{"$eq": 0}}).Select(bson.M{"seq": 1}).Distinct("seq", &seqs)
+	err = omCol.Find(bson.M{"deviceId": mid, "online": 0, "received": bson.M{"$eq": 0}}).Select(bson.M{"seq": 1}).Distinct("seq", &seqs)
 
 	if err == nil {
 		mids := []int64{mid}
 		for _, seq := range seqs {
 			var message model.Message
 			err := l.dao.GetCollection(dao.MessageCollection).Find(bson.M{"_id": seq}).One(&message)
-			if err == nil {
+			if err != nil {
+				log.Errorf("查询消息出错%v", err)
+				continue
+			}
+			if message.Online == 0 {
 				pm := model.PushMidsMessage{
-					Op:   message.Operation,
-					Seq:  message.Seq,
+					Op:      message.Operation,
+					Seq:     message.Seq,
 					MidList: mids,
 				}
 				l.DoPushMids(ctx, &pm, message.Content)
-			} else {
-				log.Errorf("查询消息出错%v", err)
 			}
 		}
 	} else {

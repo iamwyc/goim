@@ -2,9 +2,11 @@ package dao
 
 import (
 	"errors"
+	"strings"
+	"time"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
-	log "github.com/golang/glog"
+	"github.com/google/uuid"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -20,11 +22,12 @@ const (
 	deviceIDKey        = "device_id"
 	messageIDKey       = "message_id"
 )
+
 //GetDevice get device by token
 func (d *Dao) GetDevice(token *model.AuthToken) (*model.Device, error) {
 	var device model.Device
-	err := d.GetCollection(deviceCollection).Find(bson.M{"key":token.Key}).One(&device)
-	return &device,err
+	err := d.GetCollection(deviceCollection).Find(bson.M{"key": token.Key}).One(&device)
+	return &device, err
 }
 
 // NewMessage insert a new messagepush
@@ -43,11 +46,28 @@ func (d *Dao) NewMessage(message *model.Message) (err error) {
 
 // DeviceRegister device register
 func (d *Dao) DeviceRegister(device *model.Device) (err error) {
+	var existDevice model.Device
+	err = d.GetCollection(deviceCollection).Find(bson.M{"sn": device.Sn}).One(&existDevice)
+	if existDevice.Key != "" {
+		device.Key = existDevice.Key
+		device.ID = existDevice.ID
+		return nil
+	}
+
 	device.ID, err = d.getNextSeq(deviceIDKey)
 	if err != nil {
 		return err
 	}
+	device.Key = strings.ReplaceAll(uuid.New().String(), "-", "")
+	device.CreateTime = time.Now()
+	device.UpdateTime = time.Now()
+	device.Online = false
 	return d.GetCollection(deviceCollection).Insert(device)
+}
+
+// DeviceCount device register
+func (d *Dao) DeviceCount() (int, error) {
+	return d.GetCollection(deviceCollection).Count()
 }
 
 // GetCollection get mongodb collection by name
@@ -60,6 +80,9 @@ func (d *Dao) batchInsertDimensionOfflineMessage(m *model.Message) error {
 	if m == nil {
 		return errors.New("插入维度不能为空")
 	}
+
+	duration, _ := time.ParseDuration("72h")
+	expiretTime := time.Now().Add(duration)
 	var dimension = bson.M{}
 	if m.Platform > 0 {
 		dimension["platform"] = m.Platform
@@ -85,22 +108,23 @@ func (d *Dao) batchInsertDimensionOfflineMessage(m *model.Message) error {
 	var messages []interface{}
 	for _, r := range result {
 		messages = append(messages, model.OfflineMessage{
-			ID:       bson.NewObjectId(),
-			Seq:      m.Seq,
-			DeviceID: r.ID,
-			Online:   m.Online,
-			Received: 0,
+			ID:         bson.NewObjectId(),
+			Seq:        m.Seq,
+			DeviceID:   r.ID,
+			Online:     m.Online,
+			Received:   0,
+			ExpireTime: expiretTime,
 		})
 	}
 
-	log.Infof("%d %v", len(messages), messages)
 	return d.GetCollection(OfflineMessageCollection).Insert(messages...)
 }
 
 // MessageReceived message received operation
 func (d *Dao) MessageReceived(mid int64, seq int32) error {
 	collection := d.GetCollection(OfflineMessageCollection)
-	_, err := collection.Upsert(bson.M{"deviceId": mid, "seq": seq}, bson.M{"$inc": bson.M{"received": 1}})
+	var res model.OfflineMessage
+	_, err := collection.Find(bson.M{"deviceId": mid, "seq": seq}).Apply(mgo.Change{Update: bson.M{"$inc": bson.M{"received": 1}}, Upsert: false, ReturnNew: false}, &res)
 	return err
 }
 

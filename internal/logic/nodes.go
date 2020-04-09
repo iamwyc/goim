@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/bilibili/discovery/naming"
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/bilibili/discovery/naming"
+	"github.com/golang/glog"
 	log "github.com/golang/glog"
 )
 
@@ -35,6 +36,7 @@ func (l *Logic) NodesWeighted(c context.Context, platform, clientIP string) *pb.
 	if platform == model.PlatformWeb {
 		reply.Nodes = domains
 	} else {
+		glog.Info("")
 		reply.Nodes = addrs
 	}
 	if len(reply.Nodes) == 0 {

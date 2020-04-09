@@ -8,10 +8,10 @@ import (
 //Device device model
 type Device struct {
 	ID         int32     `bson:"_id"`
-	Sn         string    `bson:"sn"`
+	Sn         string    `bson:"sn" from:"sn" binding:"required"`
+	Platform   int32     `bson:"platform" from:"sn" binding:"required"`
+	Serias     int32     `bson:"serias" from:"sn" binding:"required"`
 	Key        string    `bson:"key"`
-	Platform   int32     `bson:"platform"`
-	Serias     int32     `bson:"serias"`
 	Online     bool      `bson:"online"`
 	UpdateTime time.Time `bson:"update_time"`
 	CreateTime time.Time `bson:"create_time"`
@@ -27,11 +27,12 @@ type Dimension struct {
 
 //OfflineMessage offline message model
 type OfflineMessage struct {
-	ID       bson.ObjectId `bson:"_id"`
-	DeviceID int32         `bson:"deviceId"`
-	Seq      int32         `bson:"seq"`
-	Online   int           `bson:"online"`
-	Received int32         `bson:"received"`
+	ID         bson.ObjectId `bson:"_id"`
+	DeviceID   int32         `bson:"deviceId"`
+	Seq        int32         `bson:"seq"`
+	Online     int           `bson:"online"`
+	Received   int32         `bson:"received"`
+	ExpireTime time.Time     `bson:"expireTime"`
 }
 
 //Message message model
