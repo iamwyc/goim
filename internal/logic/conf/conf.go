@@ -72,17 +72,24 @@ func Default() *Config {
 
 // Config config.
 type Config struct {
-	Env        *Env
-	Discovery  *naming.Config
-	RPCClient  *RPCClient
-	RPCServer  *RPCServer
-	HTTPServer *HTTPServer
-	Kafka      *Kafka
-	Redis      *Redis
-	Node       *Node
-	Backoff    *Backoff
-	Mongodb    *Mongodb
-	Regions    map[string][]string
+	Env         *Env
+	Discovery   *naming.Config
+	RPCClient   *RPCClient
+	RPCServer   *RPCServer
+	HTTPServer  *HTTPServer
+	Kafka       *Kafka
+	Redis       *Redis
+	Node        *Node
+	Backoff     *Backoff
+	Mongodb     *Mongodb
+	Regions     map[string][]string
+	MessagePush *MessagePush
+}
+
+// MessagePush is push config.
+type MessagePush struct {
+	Dir            string
+	BatchPushCount int
 }
 
 // Env is env config.

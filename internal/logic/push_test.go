@@ -8,19 +8,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
 func TestPushKeys(t *testing.T) {
 	var (
 		c   = context.TODO()
 		msg = []byte("hello")
 		arg = model.PushKeyMessage{
-			Op:   int32(900),
+			Op:     int32(900),
 			SnList: []string{"test_key"},
-			Seq:  900,
+			Seq:    900,
 		}
 	)
-	err := lg.PushSnList(c, &arg, msg)
+	msgID, err := lg.PushSnList(c, &arg, msg)
+	println(msgID)
 	assert.Nil(t, err)
 }
 
@@ -29,12 +28,13 @@ func TestPushMids(t *testing.T) {
 		c   = context.TODO()
 		msg = []byte("hello")
 		arg = model.PushMidsMessage{
-			Op:   int32(900),
+			Op:      int32(900),
 			MidList: []int64{12, 13},
-			Seq:  900,
+			Seq:     900,
 		}
 	)
-	err := lg.PushMidList(c, &arg, msg)
+	msgID, err := lg.PushMidList(c, &arg, msg)
+	println(msgID)
 	assert.Nil(t, err)
 }
 
@@ -63,6 +63,7 @@ func TestPushAll(t *testing.T) {
 			Speed: 5,
 		}
 	)
-	err := lg.PushAll(c, &arg, msg)
+	msgID, err := lg.PushAll(c, &arg, msg)
+	println(msgID)
 	assert.Nil(t, err)
 }

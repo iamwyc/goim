@@ -5,6 +5,10 @@ const (
 	DefaultOperation = 900
 )
 
+//PushSnFileParam push sn file param
+type PushSnFileParam struct {
+	MessageID int32 `form:"msgId" binding:"required"`
+}
 //PushKeyMessage push message by keys
 type PushKeyMessage struct {
 	SnList []string `form:"snList"  binding:"required"`

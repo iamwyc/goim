@@ -2,8 +2,12 @@ package http
 
 import (
 	"context"
-	"github.com/Terry-Mao/goim/internal/logic/model"
 	"io/ioutil"
+	"strings"
+
+	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/golang/glog"
+	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,11 +25,12 @@ func (s *Server) pushSnList(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushSnList(context.TODO(), &arg, msg); err != nil {
+	var msgID int32
+	if msgID, err = s.logic.PushSnList(context.TODO(), &arg, msg); err != nil {
 		result(c, nil, RequestErr)
 		return
 	}
-	result(c, nil, OK)
+	result(c, msgID, OK)
 }
 
 func (s *Server) pushMidList(c *gin.Context) {
@@ -42,11 +47,12 @@ func (s *Server) pushMidList(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushMidList(context.TODO(), &arg, msg); err != nil {
+	var msgID int32
+	if msgID, err = s.logic.PushMidList(context.TODO(), &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}
-	result(c, nil, OK)
+	result(c, msgID, OK)
 }
 
 func (s *Server) pushRoom(c *gin.Context) {
@@ -81,9 +87,33 @@ func (s *Server) pushAll(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushAll(c, &arg, msg); err != nil {
+	var msgID int32
+	if msgID, err = s.logic.PushAll(c, &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}
+	result(c, msgID, OK)
+}
+
+func (s *Server) pushBySnFile(c *gin.Context) {
+	var arg model.PushSnFileParam
+	if err := c.BindQuery(&arg); err != nil {
+		errors(c, RequestErr, err.Error())
+		return
+	}
+	glog.Infof("messageId:%d", arg)
+	form, _ := c.MultipartForm()
+	files := form.File["files"]
+	var fileList []string
+	for _, file := range files {
+		filePath := s.logic.GetFileDir() + strings.ToUpper(strings.ReplaceAll(uuid.New().String(), "-", "")) + ".txt"
+		err := c.SaveUploadedFile(file, filePath)
+		if err != nil {
+			glog.Error("save error:", err)
+		}else{
+			fileList = append(fileList, filePath)
+		}
+	}
+	go s.logic.PushSnFils(arg.MessageID, fileList)
 	result(c, nil, OK)
 }

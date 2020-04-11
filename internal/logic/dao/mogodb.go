@@ -56,7 +56,20 @@ func (d *Dao) NewMessage(message *model.Message) (err error) {
 	if err != nil {
 		return err
 	}
-	return d.batchInsertDimensionOfflineMessage(message)
+	return d.BatchInsertDimensionOfflineMessage(message)
+}
+
+// MessageAddSnFile insert a new messagepush
+func (d *Dao) MessageAddSnFile(messageID int32, fileList []string) (message *model.Message, err error) {
+	var (
+		change = mgo.Change{
+			Update:    bson.M{"$push": bson.M{"snfile": fileList}},
+			Upsert:    false,
+			ReturnNew: true,
+		}
+	)
+	_, err = d.GetCollection(MessageCollection).Find(bson.M{"_id": messageID}).Apply(change, &message)
+	return message, err
 }
 
 // DeviceRegister device register
@@ -97,13 +110,14 @@ func (d *Dao) GetCollection(collectionName string) *mgo.Collection {
 	return d.mSession.DB(dbname).C(collectionName)
 }
 
-func (d *Dao) batchInsertDimensionOfflineMessage(m *model.Message) error {
+// BatchInsertDimensionOfflineMessage 批量插入
+func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 
 	if m == nil {
 		return errors.New("插入维度不能为空")
 	}
 
-	duration, _ := time.ParseDuration("72h")
+	duration, _ := time.ParseDuration("75h")
 	expiretTime := time.Now().Add(duration)
 	var dimension = bson.M{}
 	if m.Platform > 0 {
@@ -145,16 +159,7 @@ func (d *Dao) batchInsertDimensionOfflineMessage(m *model.Message) error {
 // MessageReceived message received operation
 func (d *Dao) MessageReceived(mid int64, seq int32) error {
 	collection := d.GetCollection(OfflineMessageCollection)
-	var (
-		res    model.OfflineMessage
-		change = mgo.Change{
-			Update:    bson.M{"$inc": bson.M{"received": 1}},
-			Upsert:    false,
-			ReturnNew: false,
-		}
-	)
-
-	_, err := collection.Find(bson.M{"deviceId": mid, "seq": seq}).Apply(change, &res)
+	_, err := collection.UpdateAll(bson.M{"deviceId": mid, "seq": seq}, bson.M{"$inc": bson.M{"received": 1}})
 	return err
 }
 

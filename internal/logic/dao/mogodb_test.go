@@ -53,7 +53,8 @@ func TestNewMessage(t *testing.T) {
 
 }
 func TestMessageReceived(t *testing.T) {
-	d.MessageReceived(1, 19)
+	err:=d.MessageReceived(1, 12)
+	assert.Nil(t, err)
 }
 
 func TestDeviceAuthOnline(t *testing.T) {

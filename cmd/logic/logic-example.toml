@@ -66,3 +66,7 @@
 [mongodb]
     mongoUrl = "127.0.0.1:27017"
     poolLimit = 128
+    
+[messagePush]
+    batchPushCount = 100
+    dir = "D:\\tmp\\"

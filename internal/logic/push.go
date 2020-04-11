@@ -1,15 +1,18 @@
 package logic
 
 import (
+	"bufio"
 	"context"
+	"os"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
 
+	"github.com/golang/glog"
 	log "github.com/golang/glog"
 )
 
 // PushSnList push a message by keys.
-func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []byte) (err error) {
+func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []byte) (msgID int32, err error) {
 	message := model.Message{
 		Type:      0,
 		Online:    arg.Online,
@@ -22,20 +25,26 @@ func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []b
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
+	msgID = message.ID
 	arg.Seq = message.Seq
-	servers, err := l.dao.ServersByKeys(c, arg.SnList)
+	err = l.doPushSnList(c, &message, arg.SnList)
+	return
+}
+func (l *Logic) doPushSnList(c context.Context, message *model.Message, snList []string) (err error) {
+	glog.Infof("sn message %v", message)
+	servers, err := l.dao.ServersByKeys(c, snList)
 	if err != nil {
 		return
 	}
 	pushSnList := make(map[string][]string)
-	for i, key := range arg.SnList {
+	for i, key := range snList {
 		server := servers[i]
 		if server != "" && key != "" {
 			pushSnList[server] = append(pushSnList[server], key)
 		}
 	}
 	for server := range pushSnList {
-		if err = l.dao.PushMsg(c, arg.Op, server, pushSnList[server], arg.Seq, msg); err != nil {
+		if err = l.dao.PushMsg(c, message.Operation, server, pushSnList[server], message.Seq, message.Content); err != nil {
 			return
 		}
 	}
@@ -43,7 +52,7 @@ func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []b
 }
 
 //PushMidList :push a message by mid.
-func (l *Logic) PushMidList(c context.Context, arg *model.PushMidsMessage, msg []byte) (err error) {
+func (l *Logic) PushMidList(c context.Context, arg *model.PushMidsMessage, msg []byte) (msgID int32, err error) {
 	message := model.Message{
 		Type:      1,
 		Online:    arg.Online,
@@ -57,7 +66,11 @@ func (l *Logic) PushMidList(c context.Context, arg *model.PushMidsMessage, msg [
 		return
 	}
 	arg.Seq = message.Seq
-	return l.DoPushMids(c, arg, msg)
+	err = l.DoPushMids(c, arg, msg)
+	if err == nil {
+		msgID = message.ID
+	}
+	return
 }
 
 //DoPushMids :do push a message by mid.
@@ -109,7 +122,7 @@ func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []by
 }
 
 // PushAll push a message to all.
-func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte) (err error) {
+func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte) (msgID int32, err error) {
 	message := model.Message{
 		Type:      3,
 		Online:    arg.Online,
@@ -123,6 +136,82 @@ func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
+	msgID = message.ID
 	arg.Seq = message.Seq
-	return l.dao.BroadcastMsg(c, arg, msg)
+	err = l.dao.BroadcastMsg(c, arg, msg)
+	return
+}
+
+//PushSnFils push by sn file
+func (l *Logic) PushSnFils(messageID int32, fileList []string) {
+	glog.Infof("fileList :%v", fileList)
+	message, err := l.dao.MessageAddSnFile(messageID, fileList)
+	if len(fileList) == 0 || err != nil {
+		glog.Errorf("存储文件到mongo失败 %d,%v", messageID, fileList, err)
+		return
+	}
+
+	for _, file := range fileList {
+		err := l.pushFile(message, file)
+		if err != nil {
+			glog.Errorf("串号文件推送失败:%v %v", file, err)
+		}
+	}
+}
+
+// GetFileDir get save path
+func (l *Logic) GetFileDir() string {
+	return l.c.MessagePush.Dir
+}
+
+func (l *Logic) pushFile(message *model.Message, snfilepath string) (err error) {
+	file, err := os.Open(snfilepath)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	var (
+		snList              []string
+		ctx                 = context.TODO()
+		num                 = 0
+		scanner             = bufio.NewScanner(file)
+		offlineMessageParam = model.Message{
+			ID:        message.ID,
+			Seq:       message.Seq,
+			Online:    message.Online,
+			Operation: message.Operation,
+			Content:   message.Content,
+		}
+	)
+
+	for scanner.Scan() {
+		snList = append(snList, scanner.Text())
+		num++
+		if 0 == num%l.c.MessagePush.BatchPushCount {
+			offlineMessageParam.Sn = snList
+			l.pushSnFileList(ctx, &offlineMessageParam)
+			snList = snList[0:0]
+			num = 0
+		}
+	}
+	if len(snList) != 0 {
+		offlineMessageParam.Sn = snList
+		l.pushSnFileList(ctx, &offlineMessageParam)
+	}
+
+	if err = scanner.Err(); err != nil {
+		return
+	}
+	return
+}
+
+func (l *Logic) pushSnFileList(ctx context.Context, message *model.Message) {
+	err := l.dao.BatchInsertDimensionOfflineMessage(message)
+	if err != nil {
+		glog.Errorf("批量插入sn异常:%v %v", message.Sn, err)
+	}
+	err = l.doPushSnList(ctx, message, message.Sn)
+	if err != nil {
+		glog.Errorf("批量推送异常:%v %v", message.Sn, err)
+	}
 }

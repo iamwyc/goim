@@ -2,3 +2,13 @@
 
 ### 获取在线人数
 GET {{host}}/goim/online/total HTTP/1.1
+
+### 获取房间信息
+GET {{host}}/goim/online/room?serias=1&platform=151 HTTP/1.1
+
+### 获取节点状态
+GET {{host}}/goim/nodes/instances HTTP/1.1
+
+
+### 获取连接层列表
+GET {{host}}/goim/nodes/weighted HTTP/1.1

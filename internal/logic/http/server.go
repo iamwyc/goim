@@ -37,6 +37,7 @@ func (s *Server) initRouter() {
 	group.POST("/push/sns", s.pushSnList)
 	group.POST("/push/mids", s.pushMidList)
 	group.POST("/push/room", s.pushRoom)
+	group.POST("/push/snfile",s.pushBySnFile)
 	group.POST("/push/all", s.pushAll)
 	group.GET("/online/top", s.onlineTop)
 	group.GET("/online/room", s.onlineRoom)

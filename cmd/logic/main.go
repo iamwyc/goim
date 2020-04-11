@@ -30,7 +30,7 @@ func main() {
 	if err := conf.Init(); err != nil {
 		panic(err)
 	}
-	log.Infof("goim-logic [version: %s env: %+v] start", ver, conf.Conf.Env)
+	log.Infof("goim-logic [version: %s env: %+v push: %+v] start", ver, conf.Conf.Env ,conf.Conf.MessagePush)
 	// grpc register naming
 	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
