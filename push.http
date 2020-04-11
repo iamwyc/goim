@@ -10,8 +10,12 @@ POST {{host}}/goim/push/mids?midList=1637034 HTTP/1.1
 
 {{shortmessage}}
 
+
 ### 根据串号推送
-POST {{host}}/goim/push/sns?snList=AABBCCDDEE0000000001&snList=AABBCCDDEE0000000001 HTTP/1.1
+GET {{host}}/goim/push/status?messageId=18 HTTP/1.1
+
+### 根据串号推送
+POST {{host}}/goim/push/sns?snList=AABBCCDDEE0000000001 HTTP/1.1
 
 {{shortmessage}}
 
@@ -21,7 +25,7 @@ POST {{host}}/goim/push/room?platform=10&serias=-1 HTTP/1.1
 {{longmessage}}
 
 ### 根据串号文件推送
-POST {{host}}/goim/push/snfile?msgId=13
+POST {{host}}/goim/push/snfile?messageId=18
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW

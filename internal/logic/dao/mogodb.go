@@ -1,7 +1,9 @@
 package dao
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -49,6 +51,7 @@ func (d *Dao) DeviceOffline(mid int64) error {
 func (d *Dao) NewMessage(message *model.Message) (err error) {
 	message.Seq, err = d.getNextSeq(messageIDKey)
 	message.ID = message.Seq
+	message.CreateTime = time.Now()
 	if err != nil {
 		return err
 	}
@@ -57,6 +60,32 @@ func (d *Dao) NewMessage(message *model.Message) (err error) {
 		return err
 	}
 	return d.BatchInsertDimensionOfflineMessage(message)
+}
+
+// MessageStatus receiveed message status
+func (d *Dao) MessageStatus() (err error) {
+	q1 := bson.M{
+		"$match": bson.M{
+			"received": bson.M{"$gt": 0},
+		},
+	}
+	q2 := bson.M{
+		"$group": bson.M{
+			"_id":   "$seq",
+			"count": bson.M{"$sum": 1},
+		},
+	}
+	q3 := bson.M{
+		"$project": bson.M{
+			"_id":   1,
+			"count": 1,
+		},
+	}
+	var res []model.MessageAggregate
+	operations := []bson.M{q1, q2, q3}
+	err = d.GetCollection(OfflineMessageCollection).Pipe(operations).All(&res)
+	fmt.Printf("%+v", res)
+	return
 }
 
 // MessageAddSnFile insert a new messagepush
@@ -157,7 +186,8 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 }
 
 // MessageReceived message received operation
-func (d *Dao) MessageReceived(mid int64, seq int32) error {
+func (d *Dao) MessageReceived(c context.Context, mid int64, seq int32) error {
+	d.MessageSeqAdd(c, mid, seq)
 	collection := d.GetCollection(OfflineMessageCollection)
 	_, err := collection.UpdateAll(bson.M{"deviceId": mid, "seq": seq}, bson.M{"$inc": bson.M{"received": 1}})
 	return err

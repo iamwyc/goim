@@ -96,7 +96,7 @@ func (s *Server) pushAll(c *gin.Context) {
 }
 
 func (s *Server) pushBySnFile(c *gin.Context) {
-	var arg model.PushSnFileParam
+	var arg model.PushMessageIDParam
 	if err := c.BindQuery(&arg); err != nil {
 		errors(c, RequestErr, err.Error())
 		return
@@ -110,10 +110,25 @@ func (s *Server) pushBySnFile(c *gin.Context) {
 		err := c.SaveUploadedFile(file, filePath)
 		if err != nil {
 			glog.Error("save error:", err)
-		}else{
+		} else {
 			fileList = append(fileList, filePath)
 		}
 	}
 	go s.logic.PushSnFils(arg.MessageID, fileList)
 	result(c, nil, OK)
+}
+
+func (s *Server) pushStatus(c *gin.Context) {
+	var arg model.PushMessageIDParam
+	if err := c.BindQuery(&arg); err != nil {
+		errors(c, RequestErr, err.Error())
+		return
+	}
+	glog.Infof("messageId:%d", arg)
+	count, err := s.logic.MessageRedisStats(c, arg.MessageID)
+	if err != nil {
+		errors(c, RequestErr, err.Error())
+		return
+	}
+	result(c, count, OK)
 }

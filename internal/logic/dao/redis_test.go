@@ -8,6 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMessageRedisStats(t *testing.T) {
+	count, err := d.MessageRedisStats(context.Background(), 14)
+	println(count)
+	assert.Nil(t, err)
+}
 func TestDaopingRedis(t *testing.T) {
 	err := d.pingRedis(context.Background())
 	assert.Nil(t, err)

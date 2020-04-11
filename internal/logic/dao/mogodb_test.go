@@ -1,14 +1,20 @@
 package dao
 
 import (
+	"context"
 	"fmt"
-	"github.com/Terry-Mao/goim/internal/logic/model"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/stretchr/testify/assert"
 )
 
+func TestMessageStatus(t *testing.T) {
+	err := d.MessageStatus()
+	assert.Nil(t, err)
+}
 func TestUserRegister(t *testing.T) {
 	snPrefix := "KKSNAABBCCDDEE%2d%2d"
 	var s sync.WaitGroup
@@ -53,17 +59,17 @@ func TestNewMessage(t *testing.T) {
 
 }
 func TestMessageReceived(t *testing.T) {
-	err:=d.MessageReceived(1, 12)
+	err := d.MessageReceived(context.TODO(), 1, 14)
 	assert.Nil(t, err)
 }
 
 func TestDeviceAuthOnline(t *testing.T) {
-	var(
-		token=model.AuthToken{
-			Key:"6aacbf4e43374ad2ac00653de3100a98" ,
+	var (
+		token = model.AuthToken{
+			Key: "6aacbf4e43374ad2ac00653de3100a98",
 		}
 	)
-	device,err:=d.DeviceAuthOnline(&token)
+	device, err := d.DeviceAuthOnline(&token)
 	println(device)
 	println(err)
 	assert.Nil(t, err)

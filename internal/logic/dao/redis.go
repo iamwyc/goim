@@ -14,10 +14,15 @@ import (
 )
 
 const (
-	_prefixMidServer    = "mid_%d" // mid -> key:server
-	_prefixKeyServer    = "key_%s" // key -> server
-	_prefixServerOnline = "ol_%s"  // server -> online
+	_prefixMidServer    = "mid_%d"     // mid -> key:server
+	_prefixKeyServer    = "key_%s"     // key -> server
+	_prefixServerOnline = "ol_%s"      // server -> online
+	_prefixmessageCount = "message_%d" // server -> online
 )
+
+func messageCount(seq int32) string {
+	return fmt.Sprintf(_prefixmessageCount, seq)
+}
 
 func keyMidServer(mid int64) string {
 	return fmt.Sprintf(_prefixMidServer, mid)
@@ -274,6 +279,33 @@ func (d *Dao) DelServerOnline(c context.Context, server string) (err error) {
 	key := keyServerOnline(server)
 	if _, err = conn.Do("DEL", key); err != nil {
 		log.Errorf("conn.Do(DEL %s) error(%v)", key, err)
+	}
+	return
+}
+
+// MessageSeqAdd mesage incr
+func (d *Dao) MessageSeqAdd(c context.Context, mid int64, seq int32) (err error) {
+	conn := d.redis.Get()
+	defer conn.Close()
+	key := messageCount(seq)
+	count, err := redis.Int64(conn.Do("INCR", key))
+	if count <= int64(2) && err == nil {
+		if err = conn.Send("EXPIRE", key, 345600); err != nil {
+			log.Errorf("conn.Send(EXPIRE %s) error(%v)", key, err)
+			return
+		}
+	}
+	return
+}
+
+// MessageRedisStats mesage count
+func (d *Dao) MessageRedisStats(c context.Context, seq int32) (count int64, err error) {
+	conn := d.redis.Get()
+	defer conn.Close()
+	count, err = redis.Int64(conn.Do("GET", messageCount(seq)))
+	if err == redis.ErrNil {
+		count = 0
+		err = nil
 	}
 	return
 }

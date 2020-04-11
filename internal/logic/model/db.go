@@ -1,8 +1,9 @@
 package model
 
 import (
-	"gopkg.in/mgo.v2/bson"
 	"time"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 //Device device model
@@ -49,4 +50,11 @@ type Message struct {
 	Online int     `bson:"online"`
 	Room   string  `bson:"room"`
 	Mids   []int64 `bson:"mids"`
+	CreateTime   time.Time `bson:"createTime"`
+}
+
+//MessageAggregate message aggregate
+type MessageAggregate struct {
+	Seq   int32 `bson:"_id"`
+	Count int32 `bson:"count"`
 }
