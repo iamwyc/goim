@@ -20,3 +20,23 @@ func (s *Server) deviceRegister(c *gin.Context) {
 	res["goimKey"] = device.Key
 	result(c, res, OK)
 }
+
+func (s *Server) deviceStatus(c *gin.Context) {
+	var arg struct {
+		Sn string `form:"sn"`
+	}
+	if err := c.BindQuery(&arg); err != nil {
+		errors(c, RequestErr, err.Error())
+		return
+	}
+	var (
+		device *model.Device
+		err    error
+	)
+
+	if device, err = s.logic.DeviceStatus(c, arg.Sn); err != nil {
+		errors(c, ServerErr, err.Error())
+		return
+	}
+	result(c, device, OK)
+}

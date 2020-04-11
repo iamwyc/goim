@@ -21,9 +21,9 @@ func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) 
 		return
 	}
 
-	device, err := l.dao.GetDevice(&params)
+	device, err := l.dao.DeviceAuthOnline(&params)
 	if err != nil {
-		log.Errorf("l.dao.GetDevice(%vparams) error(%v)", params, err)
+		log.Errorf("l.dao.DeviceAuthOnline(%vparams) error(%v)", params, err)
 		return
 	}
 	mid = int64(device.ID)
@@ -43,6 +43,7 @@ func (l *Logic) Disconnect(c context.Context, mid int64, key, server string) (ha
 		log.Errorf("l.dao.DelMapping(%d,%s) error(%v)", mid, key, server)
 		return
 	}
+	err = l.dao.DeviceOffline(mid)
 	log.Infof("conn disconnected key:%s server:%s mid:%d", key, server, mid)
 	return
 }

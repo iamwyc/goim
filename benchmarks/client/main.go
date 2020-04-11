@@ -98,7 +98,7 @@ func client(mid int64, ip string) {
 }
 
 func startClient(key int64, ip string) {
-	time.Sleep(time.Duration(rand.Intn(120)) * time.Second)
+	time.Sleep(time.Duration(rand.Intn(3)) * time.Second)
 	atomic.AddInt64(&aliveCount, 1)
 	quit := make(chan bool, 1)
 	defer func() {
@@ -115,7 +115,7 @@ func startClient(key int64, ip string) {
 	wr := bufio.NewWriter(conn)
 	rd := bufio.NewReader(conn)
 	authToken := &AuthToken{
-		Key: "29f1c30eb7714dd58781a4675342850f",
+		Key: "88E54F912D2F409DAFAEA9109620FFBE",
 	}
 	proto := new(Proto)
 	proto.Ver = 1

@@ -23,11 +23,26 @@ const (
 	messageIDKey       = "message_id"
 )
 
-//GetDevice get device by token
-func (d *Dao) GetDevice(token *model.AuthToken) (*model.Device, error) {
-	var device model.Device
-	err := d.GetCollection(deviceCollection).Find(bson.M{"key": token.Key}).One(&device)
+//DeviceAuthOnline get device by token
+func (d *Dao) DeviceAuthOnline(token *model.AuthToken) (*model.Device, error) {
+	var (
+		device model.Device
+		change = mgo.Change{
+			Update:    bson.M{"$set": bson.M{"online": true}},
+			Upsert:    false,
+			ReturnNew: true,
+		}
+	)
+	_, err := d.GetCollection(deviceCollection).Find(bson.M{"key": token.Key}).Apply(change, &device)
 	return &device, err
+}
+
+//DeviceOffline get device by token
+func (d *Dao) DeviceOffline(mid int64) error {
+	var (
+		update = bson.M{"$set": bson.M{"online": false}}
+	)
+	return d.GetCollection(deviceCollection).Update(bson.M{"_id": mid}, update)
 }
 
 // NewMessage insert a new messagepush
@@ -58,7 +73,7 @@ func (d *Dao) DeviceRegister(device *model.Device) (err error) {
 	if err != nil {
 		return err
 	}
-	device.Key = strings.ReplaceAll(uuid.New().String(), "-", "")
+	device.Key = strings.ToUpper(strings.ReplaceAll(uuid.New().String(), "-", ""))
 	device.CreateTime = time.Now()
 	device.UpdateTime = time.Now()
 	device.Online = false
@@ -68,6 +83,13 @@ func (d *Dao) DeviceRegister(device *model.Device) (err error) {
 // DeviceCount device register
 func (d *Dao) DeviceCount() (int, error) {
 	return d.GetCollection(deviceCollection).Count()
+}
+
+// GetDeviceBySn device register
+func (d *Dao) GetDeviceBySn(sn string) (*model.Device, error) {
+	var device model.Device
+	err := d.GetCollection(deviceCollection).Find(bson.M{"sn": sn}).One(&device)
+	return &device, err
 }
 
 // GetCollection get mongodb collection by name
@@ -123,8 +145,16 @@ func (d *Dao) batchInsertDimensionOfflineMessage(m *model.Message) error {
 // MessageReceived message received operation
 func (d *Dao) MessageReceived(mid int64, seq int32) error {
 	collection := d.GetCollection(OfflineMessageCollection)
-	var res model.OfflineMessage
-	_, err := collection.Find(bson.M{"deviceId": mid, "seq": seq}).Apply(mgo.Change{Update: bson.M{"$inc": bson.M{"received": 1}}, Upsert: false, ReturnNew: false}, &res)
+	var (
+		res    model.OfflineMessage
+		change = mgo.Change{
+			Update:    bson.M{"$inc": bson.M{"received": 1}},
+			Upsert:    false,
+			ReturnNew: false,
+		}
+	)
+
+	_, err := collection.Find(bson.M{"deviceId": mid, "seq": seq}).Apply(change, &res)
 	return err
 }
 
@@ -132,11 +162,18 @@ type sequence struct {
 	NextSeq int32 `bson:"nextSeq"`
 }
 
-func (d *Dao) getNextSeq(name string) (int32, error) {
-	seq := sequence{
-		NextSeq: int32(1),
-	}
+func (d *Dao) getNextSeq(id string) (int32, error) {
+	var (
+		seq = sequence{
+			NextSeq: int32(1),
+		}
+		change = mgo.Change{
+			Update:    bson.M{"$inc": bson.M{"nextSeq": seq.NextSeq}},
+			Upsert:    true,
+			ReturnNew: true,
+		}
+	)
 	collection := d.GetCollection(sequenceCollection)
-	_, err := collection.Find(bson.M{"_id": name}).Apply(mgo.Change{Update: bson.M{"$inc": bson.M{"nextSeq": seq.NextSeq}}, Upsert: true, ReturnNew: true}, &seq)
+	_, err := collection.Find(bson.M{"_id": id}).Apply(change, &seq)
 	return seq.NextSeq, err
 }

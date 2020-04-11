@@ -1,0 +1,13 @@
+@host = http://127.0.0.1:3111
+### 设备注册
+POST {{host}}/goim/device/register HTTP/1.1
+
+{
+	"sn":"AABBCCDDEE0000000001",
+	"platform":151,
+	"serias":1
+}
+
+
+### 设备状态
+GET {{host}}/goim/device/status?sn=AABBCCDDEE0000000001 HTTP/1.1

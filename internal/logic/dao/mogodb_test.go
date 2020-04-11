@@ -55,3 +55,15 @@ func TestNewMessage(t *testing.T) {
 func TestMessageReceived(t *testing.T) {
 	d.MessageReceived(1, 19)
 }
+
+func TestDeviceAuthOnline(t *testing.T) {
+	var(
+		token=model.AuthToken{
+			Key:"6aacbf4e43374ad2ac00653de3100a98" ,
+		}
+	)
+	device,err:=d.DeviceAuthOnline(&token)
+	println(device)
+	println(err)
+	assert.Nil(t, err)
+}

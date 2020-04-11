@@ -1,0 +1,4 @@
+@host = http://127.0.0.1:3111
+
+### 获取在线人数
+GET {{host}}/goim/online/total HTTP/1.1
