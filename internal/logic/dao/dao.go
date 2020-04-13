@@ -2,8 +2,9 @@ package dao
 
 import (
 	"context"
-	"gopkg.in/mgo.v2"
 	"time"
+
+	"gopkg.in/mgo.v2"
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/gomodule/redigo/redis"
@@ -16,7 +17,7 @@ type Dao struct {
 	kafkaPub    kafka.SyncProducer
 	redis       *redis.Pool
 	redisExpire int32
-	mSession    *mgo.Session
+	MongoSession    *mgo.Session
 }
 
 // New new a dao and return.
@@ -28,12 +29,13 @@ func New(c *conf.Config) *Dao {
 	}
 	mSession.SetMode(mgo.Monotonic, true)
 	mSession.SetPoolLimit(c.Mongodb.PoolLimit)
+	mSession.SetSocketTimeout(time.Second * 10)
 	d := &Dao{
 		c:           c,
 		kafkaPub:    newKafkaPub(c.Kafka),
 		redis:       newRedis(c.Redis),
 		redisExpire: int32(time.Duration(c.Redis.Expire) / time.Second),
-		mSession:    mSession,
+		MongoSession:    mSession,
 	}
 	return d
 }

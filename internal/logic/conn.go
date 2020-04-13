@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Terry-Mao/goim/internal/logic/dao"
-	"gopkg.in/mgo.v2/bson"
-
 	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 	log "github.com/golang/glog"
@@ -85,7 +82,7 @@ func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err er
 		go l.GetUserOfflineMessage(mid)
 		proto.Op = grpc.OpGetOfflineMessageReply
 	} else if proto.Op == grpc.OpBusinessMessageAck {
-		l.dao.MessageReceived(c,mid, proto.Seq)
+		l.dao.MessageReceived(c, mid, proto.Seq)
 	}
 	return
 }
@@ -97,14 +94,11 @@ func (l *Logic) GetUserOfflineMessage(mid int64) error {
 		seqs []int32
 	)
 	ctx := context.TODO()
-	omCol := l.dao.GetCollection(dao.OfflineMessageCollection)
-	err = omCol.Find(bson.M{"deviceId": mid, "online": 0, "received": bson.M{"$eq": 0}}).Select(bson.M{"seq": 1}).Distinct("seq", &seqs)
-
+	seqs, err = l.dao.GetOfflineMessageByMID(mid)
 	if err == nil {
 		mids := []int64{mid}
 		for _, seq := range seqs {
-			var message model.Message
-			err := l.dao.GetCollection(dao.MessageCollection).Find(bson.M{"_id": seq}).One(&message)
+			message, err := l.dao.GetMessageByID(seq)
 			if err != nil {
 				log.Errorf("查询消息出错%v", err)
 				continue

@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	// OfflineMessageCollection offline_message collection name
-	OfflineMessageCollection = "offline_message"
-	// MessageCollection message collection name
-	MessageCollection  = "message"
+	// offlineMessageCollection offline_message collection name
+	offlineMessageCollection = "offline_message"
+	// messageCollection message collection name
+	messageCollection  = "message"
 	dbname             = "kkgoim"
 	deviceCollection   = "device"
 	sequenceCollection = "sequence"
@@ -35,7 +35,10 @@ func (d *Dao) DeviceAuthOnline(token *model.AuthToken) (*model.Device, error) {
 			ReturnNew: true,
 		}
 	)
-	_, err := d.GetCollection(deviceCollection).Find(bson.M{"key": token.Key}).Apply(change, &device)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+
+	_, err := d.GetCollection(session, deviceCollection).Find(bson.M{"key": token.Key}).Apply(change, &device)
 	return &device, err
 }
 
@@ -44,18 +47,22 @@ func (d *Dao) DeviceOffline(mid int64) error {
 	var (
 		update = bson.M{"$set": bson.M{"online": false}}
 	)
-	return d.GetCollection(deviceCollection).Update(bson.M{"_id": mid}, update)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	return d.GetCollection(session, deviceCollection).Update(bson.M{"_id": mid}, update)
 }
 
 // NewMessage insert a new messagepush
 func (d *Dao) NewMessage(message *model.Message) (err error) {
-	message.Seq, err = d.getNextSeq(messageIDKey)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	message.Seq, err = d.getNextSeq(session, messageIDKey)
 	message.ID = message.Seq
 	message.CreateTime = time.Now()
 	if err != nil {
 		return err
 	}
-	err = d.GetCollection(MessageCollection).Insert(message)
+	err = d.GetCollection(session, messageCollection).Insert(message)
 	if err != nil {
 		return err
 	}
@@ -83,7 +90,9 @@ func (d *Dao) MessageStatus() (err error) {
 	}
 	var res []model.MessageAggregate
 	operations := []bson.M{q1, q2, q3}
-	err = d.GetCollection(OfflineMessageCollection).Pipe(operations).All(&res)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	err = d.GetCollection(session, offlineMessageCollection).Pipe(operations).All(&res)
 	fmt.Printf("%+v", res)
 	return
 }
@@ -97,21 +106,25 @@ func (d *Dao) MessageAddSnFile(messageID int32, fileList []string) (message *mod
 			ReturnNew: true,
 		}
 	)
-	_, err = d.GetCollection(MessageCollection).Find(bson.M{"_id": messageID}).Apply(change, &message)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	_, err = d.GetCollection(session, messageCollection).Find(bson.M{"_id": messageID}).Apply(change, &message)
 	return message, err
 }
 
 // DeviceRegister device register
 func (d *Dao) DeviceRegister(device *model.Device) (err error) {
 	var existDevice model.Device
-	err = d.GetCollection(deviceCollection).Find(bson.M{"sn": device.Sn}).One(&existDevice)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	err = d.GetCollection(session, deviceCollection).Find(bson.M{"sn": device.Sn}).One(&existDevice)
 	if existDevice.Key != "" {
 		device.Key = existDevice.Key
 		device.ID = existDevice.ID
 		return nil
 	}
 
-	device.ID, err = d.getNextSeq(deviceIDKey)
+	device.ID, err = d.getNextSeq(session, deviceIDKey)
 	if err != nil {
 		return err
 	}
@@ -121,18 +134,22 @@ func (d *Dao) DeviceRegister(device *model.Device) (err error) {
 	device.CreateTime = time.Now()
 	device.UpdateTime = time.Now()
 	device.Online = false
-	return d.GetCollection(deviceCollection).Insert(device)
+	return d.GetCollection(session, deviceCollection).Insert(device)
 }
 
 // DeviceCount device register
 func (d *Dao) DeviceCount() (int, error) {
-	return d.GetCollection(deviceCollection).Count()
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	return d.GetCollection(session, deviceCollection).Count()
 }
 
 // GetDeviceBySn device register
 func (d *Dao) GetDeviceBySn(sn string) (*model.Device, error) {
 	var device model.Device
-	err := d.GetCollection(deviceCollection).Find(bson.M{"sn": sn}).One(&device)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	err := d.GetCollection(session, deviceCollection).Find(bson.M{"sn": sn}).One(&device)
 	if err == mgo.ErrNotFound {
 		return nil, nil
 	}
@@ -140,8 +157,25 @@ func (d *Dao) GetDeviceBySn(sn string) (*model.Device, error) {
 }
 
 // GetCollection get mongodb collection by name
-func (d *Dao) GetCollection(collectionName string) *mgo.Collection {
-	return d.mSession.DB(dbname).C(collectionName)
+func (d *Dao) GetCollection(session *mgo.Session, collectionName string) *mgo.Collection {
+	return session.DB(dbname).C(collectionName)
+}
+
+// GetMessageByID get message by id
+func (d *Dao) GetMessageByID(id int32) (message *model.Message, err error) {
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	err = d.GetCollection(session, messageCollection).Find(bson.M{"_id": id}).One(&message)
+	return
+}
+
+// GetOfflineMessageByMID get offlinemessage by mid
+func (d *Dao) GetOfflineMessageByMID(mid int64) (seqs []int32, err error) {
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	omCol := d.GetCollection(session, offlineMessageCollection)
+	err = omCol.Find(bson.M{"deviceId": mid, "online": 0, "received": bson.M{"$eq": 0}}).Select(bson.M{"seq": 1}).Distinct("seq", &seqs)
+	return
 }
 
 // BatchInsertDimensionOfflineMessage 批量插入
@@ -169,7 +203,10 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 	if m.Mids != nil && len(m.Mids) > 0 {
 		dimension["_id"] = bson.M{"$in": m.Mids}
 	}
-	dCol := d.GetCollection(deviceCollection)
+
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	dCol := d.GetCollection(session, deviceCollection)
 	var result []model.Device
 	dCol.Find(dimension).Select(bson.M{"id": 1}).All(&result)
 	if result == nil || len(result) == 0 {
@@ -187,13 +224,15 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 		})
 	}
 
-	return d.GetCollection(OfflineMessageCollection).Insert(messages...)
+	return d.GetCollection(session, offlineMessageCollection).Insert(messages...)
 }
 
 // MessageReceived message received operation
 func (d *Dao) MessageReceived(c context.Context, mid int64, seq int32) error {
 	d.MessageSeqAdd(c, mid, seq)
-	collection := d.GetCollection(OfflineMessageCollection)
+	session := d.MongoSession.Copy()
+	defer session.Close()
+	collection := d.GetCollection(session, offlineMessageCollection)
 	_, err := collection.UpdateAll(bson.M{"deviceId": mid, "seq": seq}, bson.M{"$inc": bson.M{"received": 1}})
 	return err
 }
@@ -202,7 +241,7 @@ type sequence struct {
 	NextSeq int32 `bson:"nextSeq"`
 }
 
-func (d *Dao) getNextSeq(id string) (int32, error) {
+func (d *Dao) getNextSeq(session *mgo.Session, id string) (int32, error) {
 	var (
 		seq = sequence{
 			NextSeq: int32(1),
@@ -213,7 +252,7 @@ func (d *Dao) getNextSeq(id string) (int32, error) {
 			ReturnNew: true,
 		}
 	)
-	collection := d.GetCollection(sequenceCollection)
+	collection := d.GetCollection(session, sequenceCollection)
 	_, err := collection.Find(bson.M{"_id": id}).Apply(change, &seq)
 	return seq.NextSeq, err
 }

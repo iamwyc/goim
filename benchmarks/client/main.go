@@ -62,7 +62,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 	begin := 0
-	num := 1000
+	num := 10000
 	ip := "127.0.0.1:3101"
 	go result()
 	for i := begin; i < begin+num; i++ {
@@ -170,7 +170,7 @@ func startClient(key int64, ip string) {
 			log.Infof("key:%d auth success", key)
 		} else if rProto.Operation == opHeartbeatReply {
 			//log.Infof("key:%d receive heartbeat", key)
-			if err = conn.SetReadDeadline(time.Now().Add(heart + 90*time.Second)); err != nil {
+			if err = conn.SetReadDeadline(time.Now().Add(heart + 120*time.Second)); err != nil {
 				log.Errorf("conn.SetReadDeadline() error(%v)", err)
 				quit <- true
 				return
