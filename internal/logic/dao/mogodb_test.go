@@ -16,18 +16,22 @@ func TestMessageStatus(t *testing.T) {
 	assert.Nil(t, err)
 }
 func TestUserRegister(t *testing.T) {
-	snPrefix := "KKSNAABBCCDDEE%2d%2d"
+	snPrefix := "KKSNAABBCCDDEE%02d%02d"
+	keyPrefix := "AABBCCDDEEFFGGHHIIJJKKLLMMNN%02d%02d"
+
 	var s sync.WaitGroup
-	for j := int32(10); j < 100; j++ {
+	for j := int32(0); j < 100; j++ {
 		s.Add(1)
 		go func(p int32) {
-			for i := int32(10); i < 100; i++ {
+			for i := int32(0); i < 100; i++ {
 				sn := fmt.Sprintf(snPrefix, p, i)
+				key := fmt.Sprintf(keyPrefix, p, i)
 				de := &model.Device{
 					Sn:         sn,
+					Key:        key,
 					Online:     false,
-					Platform:   i % 10,
-					Serias:     i % 4,
+					Platform:   551,
+					Serias:     i%2 + 1,
 					CreateTime: time.Now(),
 					UpdateTime: time.Now(),
 				}

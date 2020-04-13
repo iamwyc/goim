@@ -68,11 +68,12 @@ func (s *Server) pushRoom(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	if err = s.logic.PushRoom(c, &arg, msg); err != nil {
+	var ids []int32
+	if ids, err = s.logic.PushRoom(c, &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
 	}
-	result(c, nil, OK)
+	result(c, ids, OK)
 }
 
 func (s *Server) pushAll(c *gin.Context) {

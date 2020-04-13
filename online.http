@@ -3,8 +3,12 @@
 ### 获取在线人数
 GET {{host}}/goim/online/total HTTP/1.1
 
+
+### 获取房间人数前n
+GET {{host}}/goim/online/top?serias=1&platform=551&limit=10 HTTP/1.1
+
 ### 获取房间信息
-GET {{host}}/goim/online/room?serias=1&platform=151 HTTP/1.1
+GET {{host}}/goim/online/room?serias=1&platform=551 HTTP/1.1
 
 ### 获取节点状态
 GET {{host}}/goim/nodes/instances HTTP/1.1

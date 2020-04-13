@@ -115,7 +115,9 @@ func (d *Dao) DeviceRegister(device *model.Device) (err error) {
 	if err != nil {
 		return err
 	}
-	device.Key = strings.ToUpper(strings.ReplaceAll(uuid.New().String(), "-", ""))
+	if "" == device.Key {
+		device.Key = strings.ToUpper(strings.ReplaceAll(uuid.New().String(), "-", ""))
+	}
 	device.CreateTime = time.Now()
 	device.UpdateTime = time.Now()
 	device.Online = false
@@ -131,6 +133,9 @@ func (d *Dao) DeviceCount() (int, error) {
 func (d *Dao) GetDeviceBySn(sn string) (*model.Device, error) {
 	var device model.Device
 	err := d.GetCollection(deviceCollection).Find(bson.M{"sn": sn}).One(&device)
+	if err == mgo.ErrNotFound {
+		return nil, nil
+	}
 	return &device, err
 }
 

@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net"
 	"runtime"
@@ -31,7 +32,7 @@ const (
 
 const (
 	rawHeaderLen = uint16(16)
-	heart        = 10 * time.Second
+	heart        = 60 * time.Second
 )
 
 // Proto proto.
@@ -46,24 +47,22 @@ type Proto struct {
 
 // AuthToken auth token.
 type AuthToken struct {
-	Mid      int64   `json:"mid"`
-	Key      string  `json:"key"`
-	RoomID   string  `json:"room_id"`
-	Platform string  `json:"platform"`
-	Accepts  []int32 `json:"accepts"`
+	Key string `json:"key"`
 }
 
 var (
 	countDown  int64
 	aliveCount int64
 	errDown    int64
+
+	keyPrefix = "AABBCCDDEEFFGGHHIIJJKKLLMMNN%04d"
 )
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
-	begin := 12
-	num := 1
+	begin := 0
+	num := 1000
 	ip := "127.0.0.1:3101"
 	go result()
 	for i := begin; i < begin+num; i++ {
@@ -115,7 +114,7 @@ func startClient(key int64, ip string) {
 	wr := bufio.NewWriter(conn)
 	rd := bufio.NewReader(conn)
 	authToken := &AuthToken{
-		Key: "88E54F912D2F409DAFAEA9109620FFBE",
+		Key: fmt.Sprintf(keyPrefix, key),
 	}
 	proto := new(Proto)
 	proto.Ver = 1
@@ -147,7 +146,7 @@ func startClient(key int64, ip string) {
 				log.Errorf("key:%d tcpWriteProto() error(%v)", key, err)
 				return
 			}
-			log.Infof("key:%d Write heartbeat", key)
+			//log.Infof("key:%d Write heartbeat", key)
 			time.Sleep(heart)
 			seq++
 			select {
@@ -160,28 +159,28 @@ func startClient(key int64, ip string) {
 	}()
 	// reader
 	for {
-		if err = tcpReadProto(rd, proto); err != nil {
+
+		rProto := new(Proto)
+		if err = tcpReadProto(rd, rProto); err != nil {
 			log.Errorf("key:%d tcpReadProto() error(%v)", key, err)
 			quit <- true
 			return
 		}
-		if proto.Operation == opAuthReply {
+		if rProto.Operation == opAuthReply {
 			log.Infof("key:%d auth success", key)
-		} else if proto.Operation == opHeartbeatReply {
-			log.Infof("key:%d receive heartbeat", key)
-			if err = conn.SetReadDeadline(time.Now().Add(heart + 60*time.Second)); err != nil {
+		} else if rProto.Operation == opHeartbeatReply {
+			//log.Infof("key:%d receive heartbeat", key)
+			if err = conn.SetReadDeadline(time.Now().Add(heart + 90*time.Second)); err != nil {
 				log.Errorf("conn.SetReadDeadline() error(%v)", err)
 				quit <- true
 				return
 			}
 			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
-		} else if proto.Operation == opBusinessMessagePush {
-			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", proto.PackLen, key, proto.Seq, proto.Operation, len(proto.Body), string(proto.Body))
-			proto.Body = nil
-			proto.Operation = opBusinessMessageAck
-			tcpWriteProto(wr, proto)
-		} else {
-			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", proto.PackLen, key, proto.Seq, proto.Operation, len(proto.Body), string(proto.Body))
+		} else if rProto.Operation == opBusinessMessagePush {
+			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", rProto.PackLen, key, rProto.Seq, rProto.Operation, len(rProto.Body), string(rProto.Body))
+			rProto.Body = nil
+			rProto.Operation = opBusinessMessageAck
+			tcpWriteProto(wr, rProto)
 			atomic.AddInt64(&countDown, 1)
 		}
 	}

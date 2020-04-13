@@ -49,7 +49,7 @@ func TestPushRoom(t *testing.T) {
 			Seq:      900,
 		}
 	)
-	err := lg.PushRoom(c, &arg, msg)
+	_, err := lg.PushRoom(c, &arg, msg)
 	assert.Nil(t, err)
 }
 

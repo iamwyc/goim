@@ -120,8 +120,8 @@ func (b *Bucket) Put(rids string, ch *Channel) (err error) {
 			if room, ok = b.rooms[id]; !ok {
 				room = NewRoom(id)
 				b.rooms[id] = room
-				rooms = append(rooms, room)
 			}
+			rooms = append(rooms, room)
 		}
 		ch.Room = rooms
 	}

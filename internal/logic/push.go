@@ -31,7 +31,6 @@ func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []b
 	return
 }
 func (l *Logic) doPushSnList(c context.Context, message *model.Message, snList []string) (err error) {
-	glog.Infof("sn message %v", message)
 	servers, err := l.dao.ServersByKeys(c, snList)
 	if err != nil {
 		return
@@ -96,7 +95,7 @@ func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []
 }
 
 // PushRoom push a message by room.
-func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (err error) {
+func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (ids []int32, err error) {
 	rooms := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
 	for _, room := range rooms {
 		message := model.Message{
@@ -115,6 +114,7 @@ func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []by
 			log.Errorf("插入数据库错误:%v", err)
 			continue
 		}
+		ids = append(ids, message.ID)
 		arg.Seq = message.Seq
 		l.dao.BroadcastRoomMsg(c, arg, room, msg)
 	}

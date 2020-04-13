@@ -19,7 +19,7 @@ func (l *Logic) DeviceCount(c context.Context) (int, error) {
 // DeviceStatus device status
 func (l *Logic) DeviceStatus(c context.Context, sn string) (*model.Device, error) {
 	d, e := l.dao.GetDeviceBySn(sn)
-	if e != nil {
+	if e != nil || d == nil {
 		return d, e
 	}
 	res, e := l.dao.ServersByKeys(c, []string{sn})

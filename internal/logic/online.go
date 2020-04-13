@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/golang/glog"
 )
 
 var (
@@ -19,19 +20,25 @@ func (l *Logic) OnlineTop(c context.Context, arg *model.TopIn, n int) (tops []*m
 	if size == 0 {
 		return
 	}
+	glog.Infof("%v", l.roomCount)
 	for key, cnt := range l.roomCount {
-		var roomKey string
+		roomKey := ""
 		if arg.Platform > 0 && strings.HasPrefix(key, "p") {
 			roomKey = model.EncodePlatformRoomKey(arg.Platform)
+			size--
 		} else if arg.Serias > 0 && strings.HasPrefix(key, "s") {
 			roomKey = model.EncodeSeriasRoomKey(arg.Serias)
+			size--
 		}
-		if roomKey != "" {
+		if roomKey != "" && roomKey == key {
 			top := &model.Top{
 				RoomID: roomKey,
 				Count:  cnt,
 			}
 			tops = append(tops, top)
+		}
+		if size <= 0 {
+			break
 		}
 	}
 	sort.Slice(tops, func(i, j int) bool {
@@ -52,7 +59,7 @@ func (l *Logic) OnlineRoom(c context.Context, arg *model.OnlineRoom) (res model.
 		res.Platform = l.roomCount[model.EncodePlatformRoomKey(arg.Platform)]
 	}
 	if arg.Serias > 0 {
-		res.Serias = l.roomCount[model.EncodePlatformRoomKey(arg.Serias)]
+		res.Serias = l.roomCount[model.EncodeSeriasRoomKey(arg.Serias)]
 	}
 	return
 }
