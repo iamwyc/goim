@@ -14,8 +14,6 @@ type Channel struct {
 	signal   chan *grpc.Proto
 	Writer   bufio.Writer
 	Reader   bufio.Reader
-	Next     *Channel
-	Prev     *Channel
 
 	Mid      int64
 	Key      string

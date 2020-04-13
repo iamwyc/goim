@@ -20,7 +20,7 @@ POST {{host}}/goim/push/sns?snList=AABBCCDDEE0000000001 HTTP/1.1
 {{shortmessage}}
 
 ### 平台系列推送
-POST {{host}}/goim/push/room?platform=10&serias=-1&isOnline=1 HTTP/1.1
+POST {{host}}/goim/push/room?platform=551&serias=2 HTTP/1.1
 
 {{longmessage}}
 
