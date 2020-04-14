@@ -177,7 +177,7 @@ func startClient(key int64, ip string) {
 			}
 			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
 		} else if rProto.Operation == opBusinessMessagePush {
-			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msg: %s", rProto.PackLen, key, rProto.Seq, rProto.Operation, len(rProto.Body), string(rProto.Body))
+			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d", rProto.PackLen, key, rProto.Seq, rProto.Operation, len(rProto.Body))
 			rProto.Body = nil
 			rProto.Operation = opBusinessMessageAck
 			tcpWriteProto(wr, rProto)
