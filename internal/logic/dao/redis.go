@@ -298,13 +298,19 @@ func (d *Dao) MessageSeqAdd(c context.Context, mid int64, seq int32) (err error)
 	return
 }
 
-// MessageRedisStats mesage count
-func (d *Dao) MessageRedisStats(c context.Context, seq int32) (count int64, err error) {
+// MessageCountStats mesage count
+func (d *Dao) MessageCountStats(c context.Context, seq int32) (count int64, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
 	count, err = redis.Int64(conn.Do("GET", messageCount(seq)))
-	if err == redis.ErrNil {
-		count = 0
+	if err == nil {
+		return
+	}
+	m, err := d.GetMessageByID(seq)
+	if err == nil && m != nil {
+		count = int64(m.PushCount)
+	} else {
+		count = int64(0)
 		err = nil
 	}
 	return

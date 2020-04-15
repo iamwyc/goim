@@ -8,16 +8,17 @@ import (
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/gomodule/redigo/redis"
+	"github.com/robfig/cron"
 	kafka "gopkg.in/Shopify/sarama.v1"
 )
 
 // Dao dao.
 type Dao struct {
-	c           *conf.Config
-	kafkaPub    kafka.SyncProducer
-	redis       *redis.Pool
-	redisExpire int32
-	MongoSession    *mgo.Session
+	c            *conf.Config
+	kafkaPub     kafka.SyncProducer
+	redis        *redis.Pool
+	redisExpire  int32
+	MongoSession *mgo.Session
 }
 
 // New new a dao and return.
@@ -31,12 +32,18 @@ func New(c *conf.Config) *Dao {
 	mSession.SetPoolLimit(c.Mongodb.PoolLimit)
 	mSession.SetSocketTimeout(time.Second * 10)
 	d := &Dao{
-		c:           c,
-		kafkaPub:    newKafkaPub(c.Kafka),
-		redis:       newRedis(c.Redis),
-		redisExpire: int32(time.Duration(c.Redis.Expire) / time.Second),
-		MongoSession:    mSession,
+		c:            c,
+		kafkaPub:     newKafkaPub(c.Kafka),
+		redis:        newRedis(c.Redis),
+		redisExpire:  int32(time.Duration(c.Redis.Expire) / time.Second),
+		MongoSession: mSession,
 	}
+	cr := cron.New()
+	cr.AddFunc("0 0 2 * * ?", func() {
+		d.MessageStats()
+	})
+
+	cr.Start()
 	return d
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 func TestMessageRedisStats(t *testing.T) {
-	count, err := d.MessageRedisStats(context.Background(), 14)
+	count, err := d.MessageCountStats(context.Background(), 14)
 	println(count)
 	assert.Nil(t, err)
 }

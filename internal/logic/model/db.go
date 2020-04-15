@@ -47,10 +47,11 @@ type Message struct {
 	Platform  int32    `bson:"platform"`
 	Serias    int32    `bson:"serias"`
 	//0:不限 1:在线消息
-	Online int     `bson:"online"`
-	Room   string  `bson:"room"`
-	Mids   []int64 `bson:"mids"`
-	CreateTime   time.Time `bson:"createTime"`
+	Online     int       `bson:"online"`
+	Room       string    `bson:"room"`
+	Mids       []int64   `bson:"mids"`
+	PushCount  int32     `bson:"pushCount"`
+	CreateTime time.Time `bson:"createTime"`
 }
 
 //MessageAggregate message aggregate

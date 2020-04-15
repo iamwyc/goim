@@ -207,7 +207,7 @@ func (l *Logic) pushFile(message *model.Message, snfilepath string) (err error) 
 
 // MessageRedisStats redis mesage stats
 func (l *Logic) MessageRedisStats(ctx context.Context, messageID int32) (int64, error) {
-	return l.dao.MessageRedisStats(ctx, messageID)
+	return l.dao.MessageCountStats(ctx, messageID)
 }
 func (l *Logic) pushSnFileList(ctx context.Context, message *model.Message) {
 	err := l.dao.BatchInsertDimensionOfflineMessage(message)

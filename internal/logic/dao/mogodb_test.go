@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMessageStatus(t *testing.T) {
-	err := d.MessageStatus()
+func TestMessageStats(t *testing.T) {
+	err := d.MessageStats()
 	assert.Nil(t, err)
 }
 func TestDeviceRegister(t *testing.T) {

@@ -47,13 +47,14 @@ func Init() (err error) {
 // Default new a config with specified defualt value.
 func Default() *Config {
 	return &Config{
-		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight},
+		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight,AppID: "goim.logic"},
 		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
 		HTTPServer: &HTTPServer{
 			Network:      "tcp",
 			Addr:         "3111",
 			ReadTimeout:  xtime.Duration(time.Second),
 			WriteTimeout: xtime.Duration(time.Second),
+			Enable:       true,
 		},
 		RPCClient: &RPCClient{Dial: xtime.Duration(time.Second), Timeout: xtime.Duration(time.Second)},
 		RPCServer: &RPCServer{
@@ -65,6 +66,7 @@ func Default() *Config {
 			ForceCloseWait:    xtime.Duration(time.Second * 20),
 			KeepAliveInterval: xtime.Duration(time.Second * 60),
 			KeepAliveTimeout:  xtime.Duration(time.Second * 20),
+			Enable:            true,
 		},
 		Backoff: &Backoff{MaxDelay: 300, BaseDelay: 3, Factor: 1.8, Jitter: 1.3},
 	}
@@ -99,6 +101,7 @@ type Env struct {
 	DeployEnv string
 	Host      string
 	Weight    int64
+	AppID     string
 }
 
 // Node node config.
@@ -157,6 +160,7 @@ type RPCClient struct {
 type RPCServer struct {
 	Network           string
 	Addr              string
+	Enable            bool
 	Timeout           xtime.Duration
 	IdleTimeout       xtime.Duration
 	MaxLifeTime       xtime.Duration
@@ -169,6 +173,7 @@ type RPCServer struct {
 type HTTPServer struct {
 	Network      string
 	Addr         string
+	Enable       bool
 	ReadTimeout  xtime.Duration
 	WriteTimeout xtime.Duration
 }

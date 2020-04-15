@@ -9,20 +9,21 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/bilibili/discovery/naming"
-	resolver "github.com/bilibili/discovery/naming/grpc"
 	"github.com/Terry-Mao/goim/internal/logic"
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/Terry-Mao/goim/internal/logic/grpc"
+
 	"github.com/Terry-Mao/goim/internal/logic/http"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 	"github.com/Terry-Mao/goim/pkg/ip"
+	"github.com/bilibili/discovery/naming"
+	resolver "github.com/bilibili/discovery/naming/grpc"
 	log "github.com/golang/glog"
+	ggrpc "google.golang.org/grpc"
 )
 
 const (
-	ver   = "2.0.0"
-	appid = "goim.logic"
+	ver = "2.0.0"
 )
 
 func main() {
@@ -30,30 +31,44 @@ func main() {
 	if err := conf.Init(); err != nil {
 		panic(err)
 	}
-	log.Infof("goim-logic [version: %s env: %+v push: %+v] start", ver, conf.Conf.Env ,conf.Conf.MessagePush)
+	var (
+		httpSrv *http.Server
+		rpcSrv  *ggrpc.Server
+		appID   = conf.Conf.Env.AppID
+	)
+	log.Infof("%s [version: %s env: %+v push: %+v] start", appID, ver, conf.Conf.Env, conf.Conf.MessagePush)
 	// grpc register naming
 	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
 	// logic
 	srv := logic.New(conf.Conf)
-	httpSrv := http.New(conf.Conf.HTTPServer, srv)
-	rpcSrv := grpc.New(conf.Conf.RPCServer, srv)
-	cancel := register(dis, srv)
+
+	if conf.Conf.HTTPServer.Enable {
+		httpSrv = http.New(conf.Conf.HTTPServer, srv)
+	}
+	if conf.Conf.RPCServer.Enable {
+		rpcSrv = grpc.New(conf.Conf.RPCServer, srv)
+	}
+	cancel := register(dis, srv, conf.Conf.Env.AppID)
 	// signal
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {
 		s := <-c
-		log.Infof("goim-logic get a signal %s", s.String())
+		log.Infof("%s get a signal %s", appID, s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
 			if cancel != nil {
 				cancel()
 			}
 			srv.Close()
-			httpSrv.Close()
-			rpcSrv.GracefulStop()
-			log.Infof("goim-logic [version: %s] exit", ver)
+			if httpSrv != nil {
+				httpSrv.Close()
+			}
+			if rpcSrv != nil {
+				rpcSrv.GracefulStop()
+			}
+			log.Infof("%s [version: %s] exit", appID, ver)
 			log.Flush()
 			return
 		case syscall.SIGHUP:
@@ -63,7 +78,7 @@ func main() {
 	}
 }
 
-func register(dis *naming.Discovery, srv *logic.Logic) context.CancelFunc {
+func register(dis *naming.Discovery, srv *logic.Logic, appid string) context.CancelFunc {
 	env := conf.Conf.Env
 	addr := ip.InternalIP()
 	_, port, _ := net.SplitHostPort(conf.Conf.RPCServer.Addr)

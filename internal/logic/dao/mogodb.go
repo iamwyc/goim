@@ -3,11 +3,11 @@ package dao
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -69,8 +69,8 @@ func (d *Dao) NewMessage(message *model.Message) (err error) {
 	return d.BatchInsertDimensionOfflineMessage(message)
 }
 
-// MessageStatus receiveed message status
-func (d *Dao) MessageStatus() (err error) {
+// MessageStats receiveed message status
+func (d *Dao) MessageStats() (err error) {
 	q1 := bson.M{
 		"$match": bson.M{
 			"received": bson.M{"$gt": 0},
@@ -93,7 +93,23 @@ func (d *Dao) MessageStatus() (err error) {
 	session := d.MongoSession.Copy()
 	defer session.Close()
 	err = d.GetCollection(session, offlineMessageCollection).Pipe(operations).All(&res)
-	fmt.Printf("%+v", res)
+	if err == nil && len(res) > 0 {
+		duration, _ := time.ParseDuration("-72h")
+		startTime, _ := time.Parse("2006-01-02", time.Now().Format("2006-01-02"))
+		startTime = startTime.Add(duration)
+		up := bson.M{}
+		se := bson.M{"createTime": bson.M{"$gt": startTime}}
+		messageCol := d.GetCollection(session, messageCollection)
+		for _, v := range res {
+			se["_id"] = v.Seq
+			up["$set"] = bson.M{"pushCount": v.Count}
+			err = messageCol.Update(se, up)
+			if err != nil {
+				glog.Infof("messageStats update(error %v) : %v", err, v)
+			}
+		}
+	}
+	glog.Infof("messageStats(error %v) : %v\n", err, res)
 	return
 }
 
@@ -185,8 +201,10 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 		return errors.New("插入维度不能为空")
 	}
 
+	timeStr := time.Now().Format("2006-01-02")
 	duration, _ := time.ParseDuration("75h")
-	expiretTime := time.Now().Add(duration)
+	startTime, _ := time.Parse("2006-01-02", timeStr)
+	expiretTime := startTime.Add(duration)
 	var dimension = bson.M{}
 	if m.Platform > 0 {
 		dimension["platform"] = m.Platform
