@@ -62,7 +62,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 	begin := 0
-	num := 10000
+	num := 100
 	ip := "127.0.0.1:3101"
 	go result()
 	for i := begin; i < begin+num; i++ {

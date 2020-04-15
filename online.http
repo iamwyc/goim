@@ -5,7 +5,7 @@ GET {{host}}/goim/online/total HTTP/1.1
 
 
 ### 获取房间人数前n
-GET {{host}}/goim/online/top?serias=2&platform=551&limit=10 HTTP/1.1
+GET {{host}}/goim/online/top?serias=-1&platform=-1&limit=10 HTTP/1.1
 
 ### 获取房间信息
 GET {{host}}/goim/online/room?serias=1&platform=551 HTTP/1.1

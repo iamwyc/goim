@@ -2,8 +2,9 @@ package dao
 
 import (
 	"context"
-	"github.com/Terry-Mao/goim/internal/logic/model"
 	"testing"
+
+	"github.com/Terry-Mao/goim/internal/logic/model"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +31,7 @@ func TestDaoBroadcastRoomMsg(t *testing.T) {
 			Seq:      1,
 			Serias:   1,
 		}
-		room = model.EncodePlatformRoomKey(arg.Platform)
+		room = model.EncodePlatformAndSeriasRoomKey(551, 1)
 	)
 
 	err := d.BroadcastRoomMsg(c, &arg, room, msg)

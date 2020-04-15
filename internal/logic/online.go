@@ -3,10 +3,8 @@ package logic
 import (
 	"context"
 	"sort"
-	"strings"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
-	"github.com/golang/glog"
 )
 
 var (
@@ -15,30 +13,21 @@ var (
 
 // OnlineTop get the top online.
 func (l *Logic) OnlineTop(c context.Context, arg *model.TopIn, n int) (tops []*model.Top, err error) {
-	rooms := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
-	size := len(rooms)
-	if size == 0 {
-		return
-	}
-	glog.Infof("%v", l.roomCount)
+	room := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
 	for key, cnt := range l.roomCount {
-		roomKey := ""
-		if arg.Platform > 0 && strings.HasPrefix(key, "p") {
-			roomKey = model.EncodePlatformRoomKey(arg.Platform)
-			size--
-		} else if arg.Serias > 0 && strings.HasPrefix(key, "s") {
-			roomKey = model.EncodeSeriasRoomKey(arg.Serias)
-			size--
-		}
-		if roomKey != "" && roomKey == key {
+		if room != "" && room == key {
 			top := &model.Top{
-				RoomID: roomKey,
+				RoomID: key,
 				Count:  cnt,
 			}
 			tops = append(tops, top)
-		}
-		if size <= 0 {
 			break
+		} else if room == "" {
+			top := &model.Top{
+				RoomID: key,
+				Count:  cnt,
+			}
+			tops = append(tops, top)
 		}
 	}
 	sort.Slice(tops, func(i, j int) bool {
@@ -55,11 +44,12 @@ func (l *Logic) OnlineTop(c context.Context, arg *model.TopIn, n int) (tops []*m
 
 // OnlineRoom get rooms online.
 func (l *Logic) OnlineRoom(c context.Context, arg *model.OnlineRoom) (res model.OnlineRoomOutVO, err error) {
-	if arg.Platform > 0 {
-		res.Platform = l.roomCount[model.EncodePlatformRoomKey(arg.Platform)]
-	}
-	if arg.Serias > 0 {
-		res.Serias = l.roomCount[model.EncodeSeriasRoomKey(arg.Serias)]
+
+	room := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
+	res.Platform = arg.Platform
+	res.Serias = arg.Serias
+	if room != "" {
+		res.Count = l.roomCount[room]
 	}
 	return
 }

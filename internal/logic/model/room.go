@@ -2,35 +2,39 @@ package model
 
 import (
 	"fmt"
-	"net/url"
 )
-const(
-	platfromRoom ="p://%d"
-	seriasRoom ="s://%d"
+
+const (
+	platformRoomFmt       = "p://%d"
+	seriasRoomFmt         = "s://%d"
+	platfromSeriasRoomFmt = "ps://p%ds%d"
 )
-// EncodeRoomKey encode a room key.
-func EncodeRoomKey(typ string, room string) string {
-	return fmt.Sprintf("%s://%s", typ, room)
-}
+
 // DecodePlatformAndSeriasRoomKey encode a room key.
-func DecodePlatformAndSeriasRoomKey(platform int32, serias int32) []string {
-	var room []string
-	if platform > 0 {
-		room = append(room,EncodePlatformRoomKey(platform))
+func DecodePlatformAndSeriasRoomKey(platform int32, serias int32) (room string) {
+
+	if platform > 0 && serias > 0 {
+		room = platformAndSeriasRoom(platform, serias)
+	} else if platform > 0 {
+		room = platformRoom(platform)
+	} else if serias > 0 {
+		room = seriasRoom(serias)
 	}
-	if serias > 0 {
-		room = append(room,EncodeSeriasRoomKey(serias))
-	}
+
 	return room
 }
+
 // EncodePlatformAndSeriasRoomKey encode a room key.
 func EncodePlatformAndSeriasRoomKey(platform int32, serias int32) string {
 	room := ""
 	if platform > 0 {
-		room = room + EncodePlatformRoomKey(platform) + "@"
+		room = room + platformRoom(platform) + "@"
 	}
 	if serias > 0 {
-		room = room + EncodeSeriasRoomKey(serias) + "@"
+		room = room + seriasRoom(serias) + "@"
+	}
+	if platform > 0 && serias > 0 {
+		room = room + platformAndSeriasRoom(platform, serias) + "@"
 	}
 	if room != "" {
 		room = room[0 : len(room)-1]
@@ -38,21 +42,23 @@ func EncodePlatformAndSeriasRoomKey(platform int32, serias int32) string {
 	return room
 }
 
-// EncodePlatformRoomKey encode a room key.
-func EncodePlatformRoomKey(platform int32) string {
-	return fmt.Sprintf(platfromRoom, platform)
-}
-
-// EncodeSeriasRoomKey encode a room key.
-func EncodeSeriasRoomKey(serias int32) string {
-	return fmt.Sprintf(seriasRoom, serias)
-}
-
-// DecodeRoomKey decode room key.
-func DecodeRoomKey(key string) (string, string, error) {
-	u, err := url.Parse(key)
-	if err != nil {
-		return "", "", err
+func platformRoom(platform int32) string {
+	if platform > 0 {
+		return fmt.Sprintf(platformRoomFmt, platform)
 	}
-	return u.Scheme, u.Host, nil
+	return ""
+}
+
+func seriasRoom(serias int32) string {
+	if serias > 0 {
+		return fmt.Sprintf(seriasRoomFmt, serias)
+	}
+	return ""
+}
+
+func platformAndSeriasRoom(platform int32, serias int32) string {
+	if platform > 0 && serias > 0 {
+		return fmt.Sprintf(platfromSeriasRoomFmt, platform, serias)
+	}
+	return ""
 }

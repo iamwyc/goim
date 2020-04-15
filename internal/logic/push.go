@@ -3,6 +3,7 @@ package logic
 import (
 	"bufio"
 	"context"
+	"errors"
 	"os"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
@@ -94,30 +95,36 @@ func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []
 	return
 }
 
-// PushRoom push a message by room.
-func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (ids []int32, err error) {
-	rooms := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
-	for _, room := range rooms {
-		message := model.Message{
-			Type:      2,
-			Online:    arg.Online,
-			Operation: arg.Op,
-			Seq:       arg.Seq,
-			Platform:  arg.Platform,
-			Serias:    arg.Serias,
-			Content:   msg,
-			Room:      room,
-		}
+var (
+	// ErrRoomNull 异常:平台系列不能为空
+	ErrRoomNull = errors.New("必须指定平台或者系列")
+)
 
-		err = l.dao.NewMessage(&message)
-		if err != nil {
-			log.Errorf("插入数据库错误:%v", err)
-			continue
-		}
-		ids = append(ids, message.ID)
-		arg.Seq = message.Seq
-		l.dao.BroadcastRoomMsg(c, arg, room, msg)
+// PushRoom push a message by room.
+func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (id int32, err error) {
+	room := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
+	if room == "" {
+		return 0, ErrRoomNull
 	}
+	message := model.Message{
+		Type:      2,
+		Online:    arg.Online,
+		Operation: arg.Op,
+		Seq:       arg.Seq,
+		Platform:  arg.Platform,
+		Serias:    arg.Serias,
+		Content:   msg,
+		Room:      room,
+	}
+
+	err = l.dao.NewMessage(&message)
+	if err != nil {
+		log.Errorf("插入数据库错误:%v", err)
+		return
+	}
+	arg.Seq = message.Seq
+	id = message.ID
+	l.dao.BroadcastRoomMsg(c, arg, room, msg)
 	return
 }
 
