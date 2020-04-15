@@ -15,7 +15,7 @@ func TestMessageStatus(t *testing.T) {
 	err := d.MessageStatus()
 	assert.Nil(t, err)
 }
-func TestUserRegister(t *testing.T) {
+func TestDeviceRegister(t *testing.T) {
 	snPrefix := "KKSNAABBCCDDEE%02d%02d"
 	keyPrefix := "AABBCCDDEEFFGGHHIIJJKKLLMMNN%02d%02d"
 

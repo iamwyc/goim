@@ -95,12 +95,12 @@ func (l *Logic) GetUserOfflineMessage(mid int64) error {
 	)
 	ctx := context.TODO()
 	seqs, err = l.dao.GetOfflineMessageByMID(mid)
-	if err == nil {
+	if err == nil && len(seqs) > 0 {
 		mids := []int64{mid}
 		for _, seq := range seqs {
 			message, err := l.dao.GetMessageByID(seq)
 			if err != nil {
-				log.Errorf("查询消息出错%v", err)
+				log.Errorf("GetMessageByID %v", err)
 				continue
 			}
 			if message.Online == 0 {
@@ -112,8 +112,8 @@ func (l *Logic) GetUserOfflineMessage(mid int64) error {
 				l.DoPushMids(ctx, &pm, message.Content)
 			}
 		}
-	} else {
-		log.Errorf("查询消息出错%v", err)
+	} else if err != nil {
+		log.Errorf("GetOfflineMessageByMID出错 %v", err)
 	}
 	return err
 }

@@ -32,7 +32,7 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 		Value: sarama.ByteEncoder(b),
 	}
 	if _, _, err = d.kafkaPub.SendMessage(m); err != nil {
-		log.Errorf("PushMsg.send(push pushMsg:%v) error(%v)", pushMsg, err)
+		log.Errorf("PushMsg.send(push pushMsgId:%v) error(%v)", seq, err)
 	}
 	return
 }
