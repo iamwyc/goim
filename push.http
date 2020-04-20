@@ -6,7 +6,7 @@ POST {{host}}/goim/push/all?isOnline=1 HTTP/1.1
 
 
 ### id推送
-POST {{host}}/goim/push/mids?midList=1637034 HTTP/1.1
+POST {{host}}/goim/push/mids?midList=1 HTTP/1.1
 
 {{shortmessage}}
 
@@ -15,9 +15,9 @@ POST {{host}}/goim/push/mids?midList=1637034 HTTP/1.1
 GET {{host}}/goim/push/status?messageId=18 HTTP/1.1
 
 ### 根据串号推送
-POST {{host}}/goim/push/sns?snList=AABBCCDDEE0000000001 HTTP/1.1
+POST {{host}}/goim/push/sns?snList=KKSNAABBCCDDEE0100 HTTP/1.1
 
-{{shortmessage}}
+{{longmessage}}
 
 ### 平台系列推送
 POST {{host}}/goim/push/room?platform=551&serias=2 HTTP/1.1

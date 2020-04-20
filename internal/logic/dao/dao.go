@@ -7,6 +7,7 @@ import (
 	"gopkg.in/mgo.v2"
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
+	"github.com/golang/glog"
 	"github.com/gomodule/redigo/redis"
 	"github.com/robfig/cron"
 	kafka "gopkg.in/Shopify/sarama.v1"
@@ -38,12 +39,14 @@ func New(c *conf.Config) *Dao {
 		redisExpire:  int32(time.Duration(c.Redis.Expire) / time.Second),
 		MongoSession: mSession,
 	}
-	cr := cron.New()
-	cr.AddFunc("0 0 2 * * ?", func() {
-		d.MessageStats()
-	})
-
-	cr.Start()
+	if c.MessagePush.EnableCron{
+		glog.Infof("cron start...")
+		cr := cron.New()
+		cr.AddFunc("0 0 2 * * ?", func() {
+			d.MessageStats()
+		})
+		cr.Start()
+	}
 	return d
 }
 

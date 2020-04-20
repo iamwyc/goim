@@ -225,13 +225,18 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 	session := d.MongoSession.Copy()
 	defer session.Close()
 	dCol := d.GetCollection(session, deviceCollection)
-	var result []model.Device
+	var (
+		result   []model.Device
+		messages []interface{}
+		err      error
+		l        = 0
+	)
 	dCol.Find(dimension).Select(bson.M{"id": 1}).All(&result)
 	if result == nil || len(result) == 0 {
 		return nil
 	}
-	var messages []interface{}
 	for _, r := range result {
+		l++
 		messages = append(messages, model.OfflineMessage{
 			ID:         bson.NewObjectId(),
 			Seq:        m.Seq,
@@ -240,9 +245,19 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 			Received:   0,
 			ExpireTime: expiretTime,
 		})
+		if l%1000 == 0 {
+			err = d.GetCollection(session, offlineMessageCollection).Insert(messages...)
+			if err != nil {
+				glog.Errorf("批量插入离线消息有错误 %v", err)
+			}
+			messages = messages[0:0]
+			l = 0
+		}
 	}
-
-	return d.GetCollection(session, offlineMessageCollection).Insert(messages...)
+	if l > 0 {
+		err = d.GetCollection(session, offlineMessageCollection).Insert(messages...)
+	}
+	return err
 }
 
 // MessageReceived message received operation

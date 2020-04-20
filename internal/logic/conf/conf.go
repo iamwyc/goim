@@ -47,7 +47,7 @@ func Init() (err error) {
 // Default new a config with specified defualt value.
 func Default() *Config {
 	return &Config{
-		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight,AppID: "goim.logic"},
+		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight, AppID: "goim.logic"},
 		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
 		HTTPServer: &HTTPServer{
 			Network:      "tcp",
@@ -92,6 +92,7 @@ type Config struct {
 type MessagePush struct {
 	Dir            string
 	BatchPushCount int
+	EnableCron     bool
 }
 
 // Env is env config.
