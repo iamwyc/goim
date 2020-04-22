@@ -9,12 +9,14 @@ const (
 type PushMessageIDParam struct {
 	MessageID int32 `form:"messageId" binding:"required"`
 }
+
 //PushKeyMessage push message by keys
 type PushKeyMessage struct {
-	SnList []string `form:"snList"  binding:"required"`
-	Online int      `form:"isOnline"`
-	Op     int32
-	Seq    int32
+	SnList    []string `form:"snList"  binding:"required"`
+	Online    int      `form:"isOnline"`
+	MessageID int32    `form:"messageId"`
+	Op        int32
+	Seq       int32
 }
 
 //PushMidsMessage push message by mids

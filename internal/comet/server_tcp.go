@@ -330,21 +330,16 @@ func (s *Server) authTCP(ctx context.Context, rr *bufio.Reader, wr *bufio.Writer
 			log.Errorf("tcp request operation(%d) not auth", p.Op)
 		}
 	}
-	mid, key, rid, accepts, hb, err = s.Connect(ctx, p, "")
-	p.Op = grpc.OpAuthReply
-	if err != nil {
-		p.Body = []byte{0}
+	if mid, key, rid, accepts, hb, err = s.Connect(ctx, p, ""); err != nil {
+		log.Errorf("authTCP.Connect(key:%v).err(%v)", key, err)
+		return
 	}
-	if err1 := p.WriteTCP(wr); err1 != nil {
+	p.Op = grpc.OpAuthReply
+	p.Body = nil
+	if err = p.WriteTCP(wr); err != nil {
 		log.Errorf("authTCP.WriteTCP(key:%v).err(%v)", key, err)
 		return
 	}
-	err1 := wr.Flush()
-	if err != nil {
-		time.Sleep(time.Second * 2)
-	}
-	if err1 != nil {
-		err = err1
-	}
+	err = wr.Flush()
 	return
 }

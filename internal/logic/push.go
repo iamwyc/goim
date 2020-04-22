@@ -14,21 +14,32 @@ import (
 
 // PushSnList push a message by keys.
 func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []byte) (msgID int32, err error) {
-	message := model.Message{
-		Type:      0,
-		Online:    arg.Online,
-		Operation: arg.Op,
-		Content:   msg,
-		Sn:        arg.SnList,
+	var (
+		message *model.Message
+	)
+	if arg.MessageID > 0 {
+		message, err = l.dao.GetMessageByID(arg.MessageID)
+		if err == nil {
+			message.Sn = arg.SnList
+			err = l.dao.BatchInsertDimensionOfflineMessage(message)
+		}
+	} else {
+		message = &model.Message{
+			Type:      0,
+			Online:    arg.Online,
+			Operation: arg.Op,
+			Content:   msg,
+			Sn:        arg.SnList,
+		}
+		err = l.dao.NewMessage(message)
 	}
-	err = l.dao.NewMessage(&message)
 	if err != nil {
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
 	msgID = message.ID
 	arg.Seq = message.Seq
-	err = l.doPushSnList(c, &message, arg.SnList)
+	err = l.doPushSnList(c, message, arg.SnList)
 	return
 }
 func (l *Logic) doPushSnList(c context.Context, message *model.Message, snList []string) (err error) {

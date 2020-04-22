@@ -40,7 +40,7 @@ func (c *Channel) Watch(accepts ...int32) {
 	c.mutex.Unlock()
 }
 
-// Watch watch a operation.
+// OnlineNum online num
 func (c *Channel) OnlineNum() (roomOnline map[string]int32) {
 	c.mutex.Lock()
 	for _, r := range c.Room {
