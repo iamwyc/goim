@@ -10,8 +10,8 @@ import (
 type Device struct {
 	ID         int32     `bson:"_id"`
 	Sn         string    `bson:"sn" from:"sn" binding:"required"`
-	Platform   int32     `bson:"platform" from:"sn" binding:"required"`
-	Serias     int32     `bson:"serias" from:"sn" binding:"required"`
+	Platform   int32     `bson:"platform" from:"platform" binding:"required"`
+	Serias     int32     `bson:"serias" from:"serias" binding:"required"`
 	Key        string    `bson:"key"`
 	Online     bool      `bson:"online"`
 	UpdateTime time.Time `bson:"update_time"`

@@ -206,8 +206,10 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	rp.Put(rb)
 	conn.Close()
 	ch.Close()
-	if err = s.Disconnect(ctx, ch.Mid, ch.Key); err != nil {
-		log.Errorf("key: %s mid: %d operator do disconnect error(%v)", ch.Key, ch.Mid, err)
+	if !ch.Conflict {
+		if err = s.Disconnect(ctx, ch.Mid, ch.Key); err != nil {
+			log.Errorf("key: %s mid: %d operator do disconnect error(%v)", ch.Key, ch.Mid, err)
+		}
 	}
 	if white {
 		whitelist.Printf("key: %s mid: %d disconnect error(%v)\n", ch.Key, ch.Mid, err)

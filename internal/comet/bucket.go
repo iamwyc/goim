@@ -110,7 +110,7 @@ func (b *Bucket) Put(rids string, ch *Channel) (err error) {
 	b.cLock.Lock()
 	// close old channel
 	if dch := b.chs[ch.Key]; dch != nil {
-		dch.Close()
+		dch.CloseConflict()
 	}
 	b.chs[ch.Key] = ch
 	if rids != "" {

@@ -11,6 +11,7 @@ import (
 type Channel struct {
 	Room     []*Room
 	CliProto Ring
+	Conflict bool
 	signal   chan *grpc.Proto
 	Writer   bufio.Writer
 	Reader   bufio.Reader
@@ -95,4 +96,10 @@ func (c *Channel) Signal() {
 // Close close the channel.
 func (c *Channel) Close() {
 	c.signal <- grpc.ProtoFinish
+}
+
+// CloseConflict close conflict key channel.
+func (c *Channel) CloseConflict() {
+	c.Conflict = true
+	c.Close()
 }
