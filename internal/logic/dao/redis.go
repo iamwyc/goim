@@ -20,8 +20,8 @@ const (
 	_prefixmessageCount = "message_%d" // server -> online
 )
 
-func messageCount(seq int32) string {
-	return fmt.Sprintf(_prefixmessageCount, seq)
+func messageCount(msgID int64) string {
+	return fmt.Sprintf(_prefixmessageCount, msgID)
 }
 
 func keyMidServer(mid int64) string {
@@ -284,10 +284,10 @@ func (d *Dao) DelServerOnline(c context.Context, server string) (err error) {
 }
 
 // MessageSeqAdd mesage incr
-func (d *Dao) MessageSeqAdd(c context.Context, mid int64, seq int32) (err error) {
+func (d *Dao) MessageSeqAdd(c context.Context, msgID int64) (err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
-	key := messageCount(seq)
+	key := messageCount(msgID)
 	count, err := redis.Int64(conn.Do("INCR", key))
 	if count <= int64(2) && err == nil {
 		if err = conn.Send("EXPIRE", key, 345600); err != nil {
@@ -299,14 +299,14 @@ func (d *Dao) MessageSeqAdd(c context.Context, mid int64, seq int32) (err error)
 }
 
 // MessageCountStats mesage count
-func (d *Dao) MessageCountStats(c context.Context, seq int32) (count int64, err error) {
+func (d *Dao) MessageCountStats(c context.Context, msgID int64) (count int64, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
-	count, err = redis.Int64(conn.Do("GET", messageCount(seq)))
+	count, err = redis.Int64(conn.Do("GET", messageCount(msgID)))
 	if err == nil {
 		return
 	}
-	m, err := d.GetMessageByID(seq)
+	m, err := d.GetMessageByID(msgID)
 	if err == nil && m != nil {
 		count = int64(m.PushCount)
 	} else {

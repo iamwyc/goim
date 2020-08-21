@@ -3,6 +3,7 @@ package logic
 import (
 	"bufio"
 	"context"
+	"encoding/binary"
 	"errors"
 	"os"
 
@@ -13,7 +14,7 @@ import (
 )
 
 // PushSnList push a message by keys.
-func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []byte) (msgID int32, err error) {
+func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []byte) (msgID int64, err error) {
 	var (
 		message *model.Message
 	)
@@ -54,8 +55,12 @@ func (l *Logic) doPushSnList(c context.Context, message *model.Message, snList [
 			pushSnList[server] = append(pushSnList[server], key)
 		}
 	}
+	var msgIDBuf = make([]byte, 8)
+	binary.BigEndian.PutUint64(msgIDBuf, uint64(message.ID))
+	glog.Infof("msgIDBuf=%v", msgIDBuf)
+	content := append(msgIDBuf, message.Content...)
 	for server := range pushSnList {
-		if err = l.dao.PushMsg(c, message.Operation, server, pushSnList[server], message.Seq, message.Content); err != nil {
+		if err = l.dao.PushMsg(c, message.Operation, server, pushSnList[server], message.Seq, content); err != nil {
 			return
 		}
 	}
@@ -63,7 +68,7 @@ func (l *Logic) doPushSnList(c context.Context, message *model.Message, snList [
 }
 
 //PushMidList :push a message by mid.
-func (l *Logic) PushMidList(c context.Context, arg *model.PushMidsMessage, msg []byte) (msgID int32, err error) {
+func (l *Logic) PushMidList(c context.Context, arg *model.PushMidsMessage, msg []byte) (msgID int64, err error) {
 	message := model.Message{
 		Type:      1,
 		Online:    arg.Online,
@@ -112,7 +117,7 @@ var (
 )
 
 // PushRoom push a message by room.
-func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (id int32, err error) {
+func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []byte) (id int64, err error) {
 	room := model.DecodePlatformAndSeriasRoomKey(arg.Platform, arg.Serias)
 	if room == "" {
 		return 0, ErrRoomNull
@@ -140,7 +145,7 @@ func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []by
 }
 
 // PushAll push a message to all.
-func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte) (msgID int32, err error) {
+func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte) (msgID int64, err error) {
 	message := model.Message{
 		Type:      3,
 		Online:    arg.Online,
@@ -161,7 +166,7 @@ func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte
 }
 
 //PushSnFils push by sn file
-func (l *Logic) PushSnFils(messageID int32, fileList []string) {
+func (l *Logic) PushSnFils(messageID int64, fileList []string) {
 	glog.Infof("fileList :%v", fileList)
 	message, err := l.dao.MessageAddSnFile(messageID, fileList)
 	if len(fileList) == 0 || err != nil {
@@ -224,9 +229,10 @@ func (l *Logic) pushFile(message *model.Message, snfilepath string) (err error) 
 }
 
 // MessageRedisStats redis mesage stats
-func (l *Logic) MessageRedisStats(ctx context.Context, messageID int32) (int64, error) {
+func (l *Logic) MessageRedisStats(ctx context.Context, messageID int64) (int64, error) {
 	return l.dao.MessageCountStats(ctx, messageID)
 }
+
 func (l *Logic) pushSnFileList(ctx context.Context, message *model.Message) {
 	err := l.dao.BatchInsertDimensionOfflineMessage(message)
 	if err != nil {

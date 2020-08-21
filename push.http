@@ -1,8 +1,8 @@
-@host = http://172.20.4.50:3111
+@host = http://127.0.0.1:3111
 ### 广播
 POST {{host}}/goim/push/all?isOnline=1 HTTP/1.1
 
-{{longmessage}}
+{{shortmessage}}
 
 
 ### id推送
@@ -15,7 +15,7 @@ POST {{host}}/goim/push/mids?midList=1 HTTP/1.1
 GET {{host}}/goim/push/status?messageId=18 HTTP/1.1
 
 ### 根据串号推送
-POST {{host}}/goim/push/sns?messageId=89&snList=KKSNAABBCCDDEE0001&snList=KKSNAABBCCDDEE0002 HTTP/1.1
+POST {{host}}/goim/push/sns?snList=KKSNAABBCCDDEE0000 HTTP/1.1
 
 {{longmessage}}
 

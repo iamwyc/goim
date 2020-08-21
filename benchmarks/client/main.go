@@ -62,7 +62,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 	begin := 0
-	num := 100
+	num := 1
 	ip := "127.0.0.1:3101"
 	go result()
 	for i := begin; i < begin+num; i++ {
@@ -177,9 +177,11 @@ func startClient(key int64, ip string) {
 			}
 			log.Infof("key:%d seq:%d op:%d msg: %v", key, proto.Seq, proto.Operation, proto.Body)
 		} else if rProto.Operation == opBusinessMessagePush {
-			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d", rProto.PackLen, key, rProto.Seq, rProto.Operation, len(rProto.Body))
-			rProto.Body = nil
+			msgIDBuf := rProto.Body[:8]
+			msgID := int64(binary.BigEndian.Uint64(msgIDBuf))
+			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msgID:%d msgIDBuf:%v", rProto.PackLen, key, rProto.Seq, rProto.Operation, len(rProto.Body), msgID, msgIDBuf)
 			rProto.Operation = opBusinessMessageAck
+			rProto.Body = rProto.Body[:8]
 			tcpWriteProto(wr, rProto)
 			atomic.AddInt64(&countDown, 1)
 		}

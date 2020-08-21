@@ -25,7 +25,7 @@ func (s *Server) pushSnList(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	var msgID int32
+	var msgID int64
 	if msgID, err = s.logic.PushSnList(context.TODO(), &arg, msg); err != nil {
 		result(c, nil, RequestErr)
 		return
@@ -47,7 +47,7 @@ func (s *Server) pushMidList(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	var msgID int32
+	var msgID int64
 	if msgID, err = s.logic.PushMidList(context.TODO(), &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
@@ -68,7 +68,7 @@ func (s *Server) pushRoom(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	var id int32
+	var id int64
 	if id, err = s.logic.PushRoom(c, &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return
@@ -88,7 +88,7 @@ func (s *Server) pushAll(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	var msgID int32
+	var msgID int64
 	if msgID, err = s.logic.PushAll(c, &arg, msg); err != nil {
 		errors(c, ServerErr, err.Error())
 		return

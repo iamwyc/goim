@@ -56,8 +56,7 @@ func (d *Dao) DeviceOffline(mid int64) error {
 func (d *Dao) NewMessage(message *model.Message) (err error) {
 	session := d.MongoSession.Copy()
 	defer session.Close()
-	message.Seq, err = d.getNextSeq(session, messageIDKey)
-	message.ID = message.Seq
+	message.ID = d.idWorker.GetID()
 	message.CreateTime = time.Now()
 	if err != nil {
 		return err
@@ -114,7 +113,7 @@ func (d *Dao) MessageStats() (err error) {
 }
 
 // MessageAddSnFile insert a new messagepush
-func (d *Dao) MessageAddSnFile(messageID int32, fileList []string) (message *model.Message, err error) {
+func (d *Dao) MessageAddSnFile(messageID int64, fileList []string) (message *model.Message, err error) {
 	var (
 		change = mgo.Change{
 			Update:    bson.M{"$push": bson.M{"snfile": fileList}},
@@ -178,7 +177,7 @@ func (d *Dao) GetCollection(session *mgo.Session, collectionName string) *mgo.Co
 }
 
 // GetMessageByID get message by id
-func (d *Dao) GetMessageByID(id int32) (message *model.Message, err error) {
+func (d *Dao) GetMessageByID(id int64) (message *model.Message, err error) {
 	session := d.MongoSession.Copy()
 	defer session.Close()
 	err = d.GetCollection(session, messageCollection).Find(bson.M{"_id": id}).One(&message)
@@ -186,11 +185,11 @@ func (d *Dao) GetMessageByID(id int32) (message *model.Message, err error) {
 }
 
 // GetOfflineMessageByMID get offlinemessage by mid
-func (d *Dao) GetOfflineMessageByMID(mid int64) (seqs []int32, err error) {
+func (d *Dao) GetOfflineMessageByMID(mid int64) (msgIDList []int64, err error) {
 	session := d.MongoSession.Copy()
 	defer session.Close()
 	omCol := d.GetCollection(session, offlineMessageCollection)
-	err = omCol.Find(bson.M{"deviceId": mid, "online": 0, "received": bson.M{"$eq": 0}}).Select(bson.M{"seq": 1}).Distinct("seq", &seqs)
+	err = omCol.Find(bson.M{"deviceId": mid, "online": 0, "received": bson.M{"$eq": 0}}).Select(bson.M{"msgId": 1}).Distinct("msgId", &msgIDList)
 	return
 }
 
@@ -261,12 +260,12 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 }
 
 // MessageReceived message received operation
-func (d *Dao) MessageReceived(c context.Context, mid int64, seq int32) error {
-	d.MessageSeqAdd(c, mid, seq)
+func (d *Dao) MessageReceived(c context.Context, mid int64, msgID int64) error {
+	d.MessageSeqAdd(c, msgID)
 	session := d.MongoSession.Copy()
 	defer session.Close()
 	collection := d.GetCollection(session, offlineMessageCollection)
-	_, err := collection.UpdateAll(bson.M{"deviceId": mid, "seq": seq}, bson.M{"$inc": bson.M{"received": 1}})
+	_, err := collection.UpdateAll(bson.M{"deviceId": mid, "msgId": msgID}, bson.M{"$inc": bson.M{"received": 1}})
 	return err
 }
 

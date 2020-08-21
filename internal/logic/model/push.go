@@ -7,14 +7,14 @@ const (
 
 //PushMessageIDParam push sn file param
 type PushMessageIDParam struct {
-	MessageID int32 `form:"messageId" binding:"required"`
+	MessageID int64 `form:"messageId" binding:"required"`
 }
 
 //PushKeyMessage push message by keys
 type PushKeyMessage struct {
 	SnList    []string `form:"snList"  binding:"required"`
 	Online    int      `form:"isOnline"`
-	MessageID int32    `form:"messageId"`
+	MessageID int64    `form:"messageId"`
 	Op        int32
 	Seq       int32
 }

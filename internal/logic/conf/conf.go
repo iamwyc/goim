@@ -93,6 +93,7 @@ type MessagePush struct {
 	Dir            string
 	BatchPushCount int
 	EnableCron     bool
+	WorkerID int64
 }
 
 // Env is env config.

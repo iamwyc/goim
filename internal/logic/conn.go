@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"time"
 
@@ -77,12 +78,13 @@ func (l *Logic) RenewOnline(c context.Context, server string, roomCount map[stri
 
 // Receive receive a message.
 func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err error) {
-	log.Infof("receive mid:%d message:%+v", mid, proto)
 	if proto.Op == grpc.OpGetOfflineMessage {
 		go l.GetUserOfflineMessage(mid)
 		proto.Op = grpc.OpGetOfflineMessageReply
 	} else if proto.Op == grpc.OpBusinessMessageAck {
-		l.dao.MessageReceived(c, mid, proto.Seq)
+		msgID := int64(binary.BigEndian.Uint64(proto.Body))
+		log.Infof("receive ack mid:%d msgID:%+v", mid, msgID)
+		l.dao.MessageReceived(c, mid, msgID)
 	}
 	return
 }
@@ -90,15 +92,15 @@ func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err er
 // GetUserOfflineMessage get user offline message Operate
 func (l *Logic) GetUserOfflineMessage(mid int64) error {
 	var (
-		err  error
-		seqs []int32
+		err       error
+		msgIDList []int64
 	)
 	ctx := context.TODO()
-	seqs, err = l.dao.GetOfflineMessageByMID(mid)
-	if err == nil && len(seqs) > 0 {
+	msgIDList, err = l.dao.GetOfflineMessageByMID(mid)
+	if err == nil && len(msgIDList) > 0 {
 		mids := []int64{mid}
-		for _, seq := range seqs {
-			message, err := l.dao.GetMessageByID(seq)
+		for _, msgID := range msgIDList {
+			message, err := l.dao.GetMessageByID(msgID)
 			if err != nil {
 				log.Errorf("GetMessageByID %v", err)
 				continue

@@ -38,7 +38,7 @@ type OfflineMessage struct {
 
 //Message message model
 type Message struct {
-	ID        int32    `bson:"_id"`
+	ID        int64    `bson:"_id"`
 	Type      int      `bson:"type"`
 	Seq       int32    `bson:"seq"`
 	Operation int32    `bson:"opration"`

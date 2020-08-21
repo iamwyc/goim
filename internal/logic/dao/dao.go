@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"gopkg.in/mgo.v2"
-
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/golang/glog"
 	"github.com/gomodule/redigo/redis"
 	"github.com/robfig/cron"
+
 	kafka "gopkg.in/Shopify/sarama.v1"
+	"gopkg.in/mgo.v2"
 )
 
 // Dao dao.
@@ -20,6 +20,7 @@ type Dao struct {
 	redis        *redis.Pool
 	redisExpire  int32
 	MongoSession *mgo.Session
+	idWorker     *IDWorker
 }
 
 // New new a dao and return.
@@ -38,8 +39,9 @@ func New(c *conf.Config) *Dao {
 		redis:        newRedis(c.Redis),
 		redisExpire:  int32(time.Duration(c.Redis.Expire) / time.Second),
 		MongoSession: mSession,
+		idWorker:     NewIDWorker(c.MessagePush.WorkerID),
 	}
-	if c.MessagePush.EnableCron{
+	if c.MessagePush.EnableCron {
 		glog.Infof("cron start...")
 		cr := cron.New()
 		cr.AddFunc("0 0 2 * * ?", func() {
