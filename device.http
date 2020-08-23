@@ -10,4 +10,4 @@ POST {{host}}/goim/device/register HTTP/1.1
 
 
 ### 设备状态
-GET {{host}}/goim/device/status?sn=testregister2 HTTP/1.1
+GET {{host}}/goim/device/status?sn=AABBCCDDEE0000000001 HTTP/1.1

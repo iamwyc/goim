@@ -34,7 +34,7 @@ func TestDaoBroadcastRoomMsg(t *testing.T) {
 		room = model.EncodePlatformAndSeriasRoomKey(551, 1)
 	)
 
-	err := d.BroadcastRoomMsg(c, &arg, room, msg)
+	err := d.BroadcastRoomMsg(c, &arg, room, 1, msg)
 	assert.Nil(t, err)
 }
 
@@ -48,6 +48,6 @@ func TestDaoBroadcastMsg(t *testing.T) {
 			Speed: 5,
 		}
 	)
-	err := d.BroadcastMsg(c, &arg, msg)
+	err := d.BroadcastMsg(c, &arg, 1, msg)
 	assert.Nil(t, err)
 }

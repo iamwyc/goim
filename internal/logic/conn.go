@@ -25,7 +25,7 @@ func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) 
 		return
 	}
 	mid = int64(device.ID)
-	roomID = model.EncodePlatformAndSeriasRoomKey(device.Platform, device.Serias)
+	roomID = ""
 	hb = int64(l.c.Node.Heartbeat) * int64(l.c.Node.HeartbeatMax)
 	sn = device.Sn
 	if err = l.dao.AddMapping(c, mid, sn, server); err != nil {
@@ -108,7 +108,6 @@ func (l *Logic) GetUserOfflineMessage(mid int64) error {
 			if message.Online == 0 {
 				pm := model.PushMidsMessage{
 					Op:      message.Operation,
-					Seq:     message.Seq,
 					MidList: mids,
 				}
 				l.DoPushMids(ctx, &pm, message.Content)

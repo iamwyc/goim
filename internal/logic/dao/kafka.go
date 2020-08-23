@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"encoding/binary"
 	"strconv"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
@@ -13,14 +14,14 @@ import (
 )
 
 // PushMsg push a message to databus.
-func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, seq int32, msg []byte) (err error) {
+func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, msgID int64, msg []byte) (err error) {
+
 	pushMsg := &pb.PushMsg{
-		Seq:       seq,
 		Type:      pb.PushMsg_PUSH,
 		Operation: op,
 		Server:    server,
 		Keys:      keys,
-		Msg:       msg,
+		Msg:       putMessageID(msgID, msg),
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {
@@ -32,18 +33,18 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 		Value: sarama.ByteEncoder(b),
 	}
 	if _, _, err = d.kafkaPub.SendMessage(m); err != nil {
-		log.Errorf("PushMsg.send(push pushMsgId:%v) error(%v)", seq, err)
+		log.Errorf("PushMsg.send(push pushMsgId:%v) error(%v)", msgID, err)
 	}
 	return
 }
 
 // BroadcastRoomMsg push a message to databus.
-func (d *Dao) BroadcastRoomMsg(c context.Context, arg *model.PushRoomMessage, room string, msg []byte) (err error) {
+func (d *Dao) BroadcastRoomMsg(c context.Context, arg *model.PushRoomMessage, room string, msgID int64, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_ROOM,
 		Operation: arg.Op,
 		Room:      room,
-		Msg:       msg,
+		Msg:       putMessageID(msgID, msg),
 		Seq:       arg.Seq,
 	}
 	b, err := proto.Marshal(pushMsg)
@@ -62,12 +63,12 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, arg *model.PushRoomMessage, ro
 }
 
 // BroadcastMsg push a message to databus.
-func (d *Dao) BroadcastMsg(c context.Context, arg *model.PushAllMessage, msg []byte) (err error) {
+func (d *Dao) BroadcastMsg(c context.Context, arg *model.PushAllMessage, msgID int64, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_BROADCAST,
 		Operation: arg.Op,
 		Speed:     arg.Speed,
-		Msg:       msg,
+		Msg:       putMessageID(msgID, msg),
 		Seq:       arg.Seq,
 	}
 	b, err := proto.Marshal(pushMsg)
@@ -83,4 +84,11 @@ func (d *Dao) BroadcastMsg(c context.Context, arg *model.PushAllMessage, msg []b
 		log.Errorf("PushMsg.send(broadcast pushMsg:%v) error(%v)", pushMsg, err)
 	}
 	return
+}
+
+func putMessageID(msgID int64, content []byte) []byte {
+
+	var msgIDBuf = make([]byte, 8)
+	binary.BigEndian.PutUint64(msgIDBuf, uint64(msgID))
+	return append(msgIDBuf, content...)
 }

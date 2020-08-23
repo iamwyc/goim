@@ -21,10 +21,11 @@ type PushKeyMessage struct {
 
 //PushMidsMessage push message by mids
 type PushMidsMessage struct {
-	MidList []int64 `form:"midList" binding:"required"`
-	Online  int     `form:"isOnline"`
-	Op      int32
-	Seq     int32
+	MidList   []int64 `form:"midList" binding:"required"`
+	Online    int     `form:"isOnline"`
+	Op        int32
+	Seq       int32
+	MessageID int64
 }
 
 //PushRoomMessage push message by room

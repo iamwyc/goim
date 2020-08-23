@@ -48,7 +48,6 @@ func TestDeviceRegister(t *testing.T) {
 
 func TestNewMessage(t *testing.T) {
 	err := d.NewMessage(&model.Message{
-		Seq:       100,
 		Operation: 1000,
 		Content:   []byte("TestNewMessage"),
 		Serias:    0,

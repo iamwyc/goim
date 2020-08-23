@@ -210,7 +210,7 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 	}
 	if m.Serias > 0 {
 		dimension["serias"] = m.Serias
-	}
+	}	
 	if m.Sn != nil && len(m.Sn) > 0 {
 		dimension["sn"] = bson.M{"$in": m.Sn}
 	}
@@ -238,7 +238,6 @@ func (d *Dao) BatchInsertDimensionOfflineMessage(m *model.Message) error {
 		l++
 		messages = append(messages, model.OfflineMessage{
 			ID:         bson.NewObjectId(),
-			Seq:        m.Seq,
 			DeviceID:   r.ID,
 			Online:     m.Online,
 			Received:   0,

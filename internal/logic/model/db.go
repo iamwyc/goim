@@ -40,7 +40,6 @@ type OfflineMessage struct {
 type Message struct {
 	ID        int64    `bson:"_id"`
 	Type      int      `bson:"type"`
-	Seq       int32    `bson:"seq"`
 	Operation int32    `bson:"opration"`
 	Content   []byte   `bson:"content"`
 	Sn        []string `bson:"snList"`

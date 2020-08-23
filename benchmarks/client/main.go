@@ -179,10 +179,11 @@ func startClient(key int64, ip string) {
 		} else if rProto.Operation == opBusinessMessagePush {
 			msgIDBuf := rProto.Body[:8]
 			msgID := int64(binary.BigEndian.Uint64(msgIDBuf))
-			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msgID:%d msgIDBuf:%v", rProto.PackLen, key, rProto.Seq, rProto.Operation, len(rProto.Body), msgID, msgIDBuf)
+			log.Infof("packlen:%d key:%d seq:%d op:%d msglen:%d msgID:%d msg:%v", rProto.PackLen, key, rProto.Seq, rProto.Operation, len(rProto.Body), msgID, string(rProto.Body[8:]))
 			rProto.Operation = opBusinessMessageAck
 			rProto.Body = rProto.Body[:8]
 			tcpWriteProto(wr, rProto)
+
 			atomic.AddInt64(&countDown, 1)
 		}
 	}

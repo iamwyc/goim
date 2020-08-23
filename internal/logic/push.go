@@ -3,7 +3,6 @@ package logic
 import (
 	"bufio"
 	"context"
-	"encoding/binary"
 	"errors"
 	"os"
 
@@ -39,7 +38,6 @@ func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []b
 		return
 	}
 	msgID = message.ID
-	arg.Seq = message.Seq
 	err = l.doPushSnList(c, message, arg.SnList)
 	return
 }
@@ -55,12 +53,8 @@ func (l *Logic) doPushSnList(c context.Context, message *model.Message, snList [
 			pushSnList[server] = append(pushSnList[server], key)
 		}
 	}
-	var msgIDBuf = make([]byte, 8)
-	binary.BigEndian.PutUint64(msgIDBuf, uint64(message.ID))
-	glog.Infof("msgIDBuf=%v", msgIDBuf)
-	content := append(msgIDBuf, message.Content...)
 	for server := range pushSnList {
-		if err = l.dao.PushMsg(c, message.Operation, server, pushSnList[server], message.Seq, content); err != nil {
+		if err = l.dao.PushMsg(c, message.Operation, server, pushSnList[server], message.ID, message.Content); err != nil {
 			return
 		}
 	}
@@ -81,7 +75,7 @@ func (l *Logic) PushMidList(c context.Context, arg *model.PushMidsMessage, msg [
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
-	arg.Seq = message.Seq
+	arg.MessageID = message.ID
 	err = l.DoPushMids(c, arg, msg)
 	if err == nil {
 		msgID = message.ID
@@ -104,7 +98,7 @@ func (l *Logic) DoPushMids(c context.Context, arg *model.PushMidsMessage, msg []
 		keys[server] = append(keys[server], key)
 	}
 	for server, keys := range keys {
-		if err = l.dao.PushMsg(c, arg.Op, server, keys, arg.Seq, msg); err != nil {
+		if err = l.dao.PushMsg(c, arg.Op, server, keys, arg.MessageID, msg); err != nil {
 			return
 		}
 	}
@@ -126,7 +120,6 @@ func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []by
 		Type:      2,
 		Online:    arg.Online,
 		Operation: arg.Op,
-		Seq:       arg.Seq,
 		Platform:  arg.Platform,
 		Serias:    arg.Serias,
 		Content:   msg,
@@ -138,9 +131,8 @@ func (l *Logic) PushRoom(c context.Context, arg *model.PushRoomMessage, msg []by
 		log.Errorf("插入数据库错误:%v", err)
 		return
 	}
-	arg.Seq = message.Seq
 	id = message.ID
-	l.dao.BroadcastRoomMsg(c, arg, room, msg)
+	l.dao.BroadcastRoomMsg(c, arg, room, message.ID, msg)
 	return
 }
 
@@ -150,7 +142,6 @@ func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte
 		Type:      3,
 		Online:    arg.Online,
 		Operation: arg.Op,
-		Seq:       arg.Seq,
 		Content:   msg,
 	}
 
@@ -160,8 +151,7 @@ func (l *Logic) PushAll(c context.Context, arg *model.PushAllMessage, msg []byte
 		return
 	}
 	msgID = message.ID
-	arg.Seq = message.Seq
-	err = l.dao.BroadcastMsg(c, arg, msg)
+	err = l.dao.BroadcastMsg(c, arg, message.ID, msg)
 	return
 }
 
@@ -200,7 +190,6 @@ func (l *Logic) pushFile(message *model.Message, snfilepath string) (err error) 
 		scanner             = bufio.NewScanner(file)
 		offlineMessageParam = model.Message{
 			ID:        message.ID,
-			Seq:       message.Seq,
 			Online:    message.Online,
 			Operation: message.Operation,
 			Content:   message.Content,
