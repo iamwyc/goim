@@ -6,9 +6,9 @@ import (
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/golang/glog"
-	"github.com/gomodule/redigo/redis"
 	"github.com/robfig/cron"
 
+	"github.com/go-redis/redis/v8"
 	kafka "gopkg.in/Shopify/sarama.v1"
 	"gopkg.in/mgo.v2"
 )
@@ -17,7 +17,7 @@ import (
 type Dao struct {
 	c            *conf.Config
 	kafkaPub     kafka.SyncProducer
-	redis        *redis.Pool
+	redis        *redis.ClusterClient
 	redisExpire  int32
 	MongoSession *mgo.Session
 	idWorker     *IDWorker
@@ -64,24 +64,11 @@ func newKafkaPub(c *conf.Kafka) kafka.SyncProducer {
 	return pub
 }
 
-func newRedis(c *conf.Redis) *redis.Pool {
-	return &redis.Pool{
-		MaxIdle:     c.Idle,
-		MaxActive:   c.Active,
-		IdleTimeout: time.Duration(c.IdleTimeout),
-		Dial: func() (redis.Conn, error) {
-			conn, err := redis.Dial(c.Network, c.Addr,
-				redis.DialConnectTimeout(time.Duration(c.DialTimeout)),
-				redis.DialReadTimeout(time.Duration(c.ReadTimeout)),
-				redis.DialWriteTimeout(time.Duration(c.WriteTimeout)),
-				redis.DialPassword(c.Auth),
-			)
-			if err != nil {
-				return nil, err
-			}
-			return conn, nil
-		},
-	}
+func newRedis(c *conf.Redis) *redis.ClusterClient {
+	return redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:    []string{":6304", ":6305", ":6300", ":6301", "6302", ":6303"},
+		ReadOnly: false,
+	})
 }
 
 // Close close the resource.

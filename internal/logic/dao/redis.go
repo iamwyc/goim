@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/go-redis/redis/v8"
 	log "github.com/golang/glog"
-	"github.com/gomodule/redigo/redis"
 
 	"github.com/zhenjl/cityhash"
 )
@@ -38,151 +39,117 @@ func keyServerOnline(key string) string {
 
 // pingRedis check redis connection.
 func (d *Dao) pingRedis(c context.Context) (err error) {
-	conn := d.redis.Get()
-	_, err = conn.Do("SET", "PING", "PONG")
-	conn.Close()
-	return
+
+	return d.redis.Ping(c).Err()
 }
 
 // AddMapping add a mapping.
 // Mapping:
 //	mid -> key_server
 //	key -> server
-func (d *Dao) AddMapping(c context.Context, mid int64, key, server string) (err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	var n = 2
-	if mid > 0 {
-		if err = conn.Send("HSET", keyMidServer(mid), key, server); err != nil {
-			log.Errorf("conn.Send(HSET %d,%s,%s) error(%v)", mid, server, key, err)
+func (d *Dao) AddMapping(ctx context.Context, mid int64, key, server string) (err error) {
+	_, err = d.redis.Pipelined(ctx, func(pipe redis.Pipeliner) (e error) {
+		if mid > 0 {
+			if _, e = pipe.Do(ctx, "HSET", keyMidServer(mid), key, server).Result(); err != nil {
+				return
+			}
+			if _, e = pipe.Do(ctx, "EXPIRE", keyMidServer(mid), d.redisExpire).Result(); err != nil {
+				return
+			}
+		}
+		if _, e = pipe.Do(ctx, "SET", keyKeyServer(key), server).Result(); err != nil {
 			return
 		}
-		if err = conn.Send("EXPIRE", keyMidServer(mid), d.redisExpire); err != nil {
-			log.Errorf("conn.Send(EXPIRE %d,%s,%s) error(%v)", mid, key, server, err)
+		if _, e = pipe.Do(ctx, "EXPIRE", keyKeyServer(key), d.redisExpire).Result(); err != nil {
 			return
 		}
-		n += 2
-	}
-	if err = conn.Send("SET", keyKeyServer(key), server); err != nil {
-		log.Errorf("conn.Send(HSET %d,%s,%s) error(%v)", mid, server, key, err)
-		return
-	}
-	if err = conn.Send("EXPIRE", keyKeyServer(key), d.redisExpire); err != nil {
-		log.Errorf("conn.Send(EXPIRE %d,%s,%s) error(%v)", mid, key, server, err)
-		return
-	}
-	if err = conn.Flush(); err != nil {
-		log.Errorf("conn.Flush() error(%v)", err)
-		return
-	}
-	for i := 0; i < n; i++ {
-		if _, err = conn.Receive(); err != nil {
-			log.Errorf("conn.Receive() error(%v)", err)
-			return
-		}
-	}
+		return nil
+	})
+
 	return
 }
 
 // ExpireMapping expire a mapping.
-func (d *Dao) ExpireMapping(c context.Context, mid int64, key string) (has bool, err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	var n = 1
-	if mid > 0 {
-		if err = conn.Send("EXPIRE", keyMidServer(mid), d.redisExpire); err != nil {
-			log.Errorf("conn.Send(EXPIRE %d,%s) error(%v)", mid, key, err)
+func (d *Dao) ExpireMapping(ctx context.Context, mid int64, key string) (has bool, err error) {
+	cmd, err := d.redis.Pipelined(ctx, func(pipe redis.Pipeliner) (e error) {
+		if _, e = pipe.Expire(ctx, keyMidServer(mid), time.Duration(d.redisExpire)*time.Second).Result(); err != nil {
 			return
 		}
-		n++
-	}
-	if err = conn.Send("EXPIRE", keyKeyServer(key), d.redisExpire); err != nil {
-		log.Errorf("conn.Send(EXPIRE %d,%s) error(%v)", mid, key, err)
-		return
-	}
-	if err = conn.Flush(); err != nil {
-		log.Errorf("conn.Flush() error(%v)", err)
-		return
-	}
-	for i := 0; i < n; i++ {
-		if has, err = redis.Bool(conn.Receive()); err != nil {
-			log.Errorf("conn.Receive() error(%v)", err)
+		if _, e = pipe.Expire(ctx, keyKeyServer(key), time.Duration(d.redisExpire)*time.Second).Result(); err != nil {
 			return
 		}
+		return nil
+	})
+	has = true
+	for _, c := range cmd {
+		d := c.(*redis.BoolCmd)
+		has = has && d.Val()
 	}
 	return
 }
 
 // DelMapping del a mapping.
-func (d *Dao) DelMapping(c context.Context, mid int64, key, server string) (has bool, err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	n := 1
-	if mid > 0 {
-		if err = conn.Send("HDEL", keyMidServer(mid), key); err != nil {
-			log.Errorf("conn.Send(HDEL %d,%s,%s) error(%v)", mid, key, server, err)
+func (d *Dao) DelMapping(ctx context.Context, mid int64, key, server string) (has bool, err error) {
+	cmd, err := d.redis.Pipelined(ctx, func(pipe redis.Pipeliner) (e error) {
+
+		if _, e = pipe.HDel(ctx, keyMidServer(mid), key).Result(); err != nil {
 			return
 		}
-		n++
-	}
-	if err = conn.Send("DEL", keyKeyServer(key)); err != nil {
-		log.Errorf("conn.Send(HDEL %d,%s,%s) error(%v)", mid, key, server, err)
-		return
-	}
-	if err = conn.Flush(); err != nil {
-		log.Errorf("conn.Flush() error(%v)", err)
-		return
-	}
-	for i := 0; i < n; i++ {
-		if has, err = redis.Bool(conn.Receive()); err != nil {
-			log.Errorf("conn.Receive() error(%v)", err)
+		if _, e = pipe.Del(ctx, keyKeyServer(key)).Result(); err != nil {
 			return
 		}
+
+		return nil
+	})
+	has = true
+	for _, c := range cmd {
+		d := c.(*redis.IntCmd)
+		has = has && d.Val() > 0
 	}
 	return
 }
 
 // ServersByKeys get a server by key.
 func (d *Dao) ServersByKeys(c context.Context, keys []string) (res []string, err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	var args []interface{}
-	for _, key := range keys {
-		args = append(args, keyKeyServer(key))
-	}
-	if res, err = redis.Strings(conn.Do("MGET", args...)); err != nil {
-		log.Errorf("conn.Do(MGET %v) error(%v)", args, err)
+	cmd, _ := d.redis.Pipelined(c, func(pipe redis.Pipeliner) (e error) {
+		for _, key := range keys {
+			pipe.Get(c, keyKeyServer(key))
+		}
+		return
+	})
+
+	log.Infof("%v", cmd)
+	for _, c := range cmd {
+
+		if c.Err() == redis.Nil {
+			continue
+		}
+
+		d := c.(*redis.StringCmd)
+		if d.Err() != nil {
+			return nil, d.Err()
+		}
+
+		res = append(res, d.Val())
 	}
 	return
 }
 
 // KeysByMids get a key server by mid.
 func (d *Dao) KeysByMids(c context.Context, mids []int64) (ress map[string]string, olMids []int64, err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
 	ress = make(map[string]string)
-	for _, mid := range mids {
-		if err = conn.Send("HGETALL", keyMidServer(mid)); err != nil {
+
+	for idx, mid := range mids {
+		r := d.redis.HGetAll(c, keyMidServer(mid))
+		if err = r.Err(); err != nil {
 			log.Errorf("conn.Do(HGETALL %d) error(%v)", mid, err)
 			return
 		}
-	}
-	if err = conn.Flush(); err != nil {
-		log.Errorf("conn.Flush() error(%v)", err)
-		return
-	}
-	for idx := 0; idx < len(mids); idx++ {
-		var (
-			res map[string]string
-		)
-		if res, err = redis.StringMap(conn.Receive()); err != nil {
-			log.Errorf("conn.Receive() error(%v)", err)
-			return
-		}
-		if len(res) > 0 {
+		if len(r.Val()) > 0 {
 			olMids = append(olMids, mids[idx])
 		}
-		for k, v := range res {
+
+		for k, v := range r.Val() {
 			ress[k] = v
 		}
 	}
@@ -211,27 +178,16 @@ func (d *Dao) AddServerOnline(c context.Context, server string, online *model.On
 }
 
 func (d *Dao) addServerOnline(c context.Context, key string, hashKey string, online *model.Online) (err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
 	b, _ := json.Marshal(online)
-	if err = conn.Send("HSET", key, hashKey, b); err != nil {
-		log.Errorf("conn.Send(SET %s,%s) error(%v)", key, hashKey, err)
-		return
-	}
-	if err = conn.Send("EXPIRE", key, d.redisExpire); err != nil {
-		log.Errorf("conn.Send(EXPIRE %s) error(%v)", key, err)
-		return
-	}
-	if err = conn.Flush(); err != nil {
-		log.Errorf("conn.Flush() error(%v)", err)
-		return
-	}
-	for i := 0; i < 2; i++ {
-		if _, err = conn.Receive(); err != nil {
-			log.Errorf("conn.Receive() error(%v)", err)
+	_, err = d.redis.Pipelined(c, func(pipe redis.Pipeliner) (e error) {
+		if _, e = pipe.Do(c, "HSET", key, hashKey, b).Result(); err != nil {
 			return
 		}
-	}
+		if _, e = pipe.Do(c, "EXPIRE", key, d.redisExpire).Result(); err != nil {
+			return
+		}
+		return nil
+	})
 	return
 }
 
@@ -255,11 +211,9 @@ func (d *Dao) ServerOnline(c context.Context, server string) (online *model.Onli
 }
 
 func (d *Dao) serverOnline(c context.Context, key string, hashKey string) (online *model.Online, err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	b, err := redis.Bytes(conn.Do("HGET", key, hashKey))
+	b, err := d.redis.HGet(c, key, hashKey).Bytes()
 	if err != nil {
-		if err != redis.ErrNil {
+		if err != redis.Nil {
 			log.Errorf("conn.Do(HGET %s %s) error(%v)", key, hashKey, err)
 		}
 		return
@@ -269,15 +223,23 @@ func (d *Dao) serverOnline(c context.Context, key string, hashKey string) (onlin
 		log.Errorf("serverOnline json.Unmarshal(%s) error(%v)", b, err)
 		return
 	}
+
+	_, err = d.redis.Pipelined(c, func(pipe redis.Pipeliner) (e error) {
+		if _, e = pipe.Do(c, "HSET", key, hashKey, b).Result(); err != nil {
+			return
+		}
+		if _, e = pipe.Do(c, "EXPIRE", key, d.redisExpire).Result(); err != nil {
+			return
+		}
+		return nil
+	})
 	return
 }
 
 // DelServerOnline del a server online.
 func (d *Dao) DelServerOnline(c context.Context, server string) (err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
 	key := keyServerOnline(server)
-	if _, err = conn.Do("DEL", key); err != nil {
+	if _, err = d.redis.Del(c, key).Result(); err != nil {
 		log.Errorf("conn.Do(DEL %s) error(%v)", key, err)
 	}
 	return
@@ -285,12 +247,10 @@ func (d *Dao) DelServerOnline(c context.Context, server string) (err error) {
 
 // MessageSeqAdd mesage incr
 func (d *Dao) MessageSeqAdd(c context.Context, msgID int64) (err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
 	key := messageCount(msgID)
-	count, err := redis.Int64(conn.Do("INCR", key))
-	if count <= int64(2) && err == nil {
-		if err = conn.Send("EXPIRE", key, 345600); err != nil {
+	count, err := d.redis.Incr(c, key).Uint64()
+	if count <= uint64(2) && err == nil {
+		if err = d.redis.Expire(c, key, time.Duration(time.Second*345600)).Err(); err != nil {
 			log.Errorf("conn.Send(EXPIRE %s) error(%v)", key, err)
 			return
 		}
@@ -300,9 +260,7 @@ func (d *Dao) MessageSeqAdd(c context.Context, msgID int64) (err error) {
 
 // MessageCountStats mesage count
 func (d *Dao) MessageCountStats(c context.Context, msgID int64) (count int64, err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	count, err = redis.Int64(conn.Do("GET", messageCount(msgID)))
+	count, err = d.redis.Get(c, messageCount(msgID)).Int64()
 	if err == nil {
 		return
 	}

@@ -43,7 +43,8 @@ func (l *Logic) PushSnList(c context.Context, arg *model.PushKeyMessage, msg []b
 }
 func (l *Logic) doPushSnList(c context.Context, message *model.Message, snList []string) (err error) {
 	servers, err := l.dao.ServersByKeys(c, snList)
-	if err != nil {
+	if err != nil || servers == nil || len(servers) == 0 {
+		log.Errorf("获取用户信息错误%v %v" , err,servers)
 		return
 	}
 	pushSnList := make(map[string][]string)
